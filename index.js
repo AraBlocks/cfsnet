@@ -1,0 +1,10 @@
+Object.assign(exports,
+  require('./create-drive'),
+  require('./create-key-path'),
+  require('./create-lcfs'),
+  require('./create'),
+  require('./destroy'),
+  require('./drives'),
+  require('./env'),
+  require('./tree')
+)
