@@ -15,16 +15,15 @@ const pify = require('pify')
  * from disk, and removed from the shared CFS drive map.
  */
 
-async function destroyCFS({id, discoveryKey} = {}) {
-  const path = createCFSKeyPath({id, discoveryKey})
-  const drive = drives[path] || createCFSKeyPath({id, discoveryKey})
+async function destroyCFS({id, key} = {}) {
+  const path = createCFSKeyPath({id, key})
+  const drive = drives[path] || createCFSKeyPath({id, key})
   if (drive) {
-    debug("Destroying CFS at path '%s' with discoveryKey",
-      path,
-      (drive.discoveryKey || drive.key).toString('hex'))
+    debug("Destroying CFS at path '%s' with key",
+      path, drive.key.toString('hex'))
 
-    await drive.rimraf('/')
-    await drive.close()
+    await pify(drive.rimraf)('/')
+    await pify(drive.close)()
     await pify(rimraf)(path)
     debug("Purging CFS drive in CFSMAP")
     delete drives[path]

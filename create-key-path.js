@@ -10,8 +10,8 @@ const { resolve } = require('path')
  * against the `CFS_ROOT_DIR` environment variable.
  */
 
-function createCFSKeyPath({id, discoveryKey} = {}) {
-  const hash = createSHA256(String(id) + String(discoveryKey || ''))
+function createCFSKeyPath({id, key} = {}) {
+  const hash = createSHA256(String(id))
   const path = resolve(CFS_ROOT_DIR, hash)
   return path
 }

@@ -4,18 +4,16 @@ const hyperdrive = require('hyperdrive')
 const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
 const debug = require('debug')('littlstar:cfs:create:drive')
-const pify = require('pify')
 
-async function createCFSDrive({path, discoveryKey} = {}) {
-  const drive = hyperdrive(path, discoveryKey ? discoveryKey : undefined)
+async function createCFSDrive({path, key} = {}) {
+  const drive = hyperdrive(path, key ? key : undefined)
+  drive.setMaxListeners(Infinity)
   // wait for drive to be ready
   await new Promise((resolve) => drive.ready(resolve))
-  debug("Initializing CFS HyperDrive instance at '%s' with discoveryKey '%s'",
+  debug("Initializing CFS HyperDrive instance at '%s' with key '%s'",
     path,
-    (drive.discoveryKey || drive.key).toString('hex'))
+    (drive.key || drive.key).toString('hex'))
 
-  // these methods are promisified to enable usage of
-  // the `async/await` keywords
   const methods = [
     'stat',
     'lstat',
@@ -29,50 +27,39 @@ async function createCFSDrive({path, discoveryKey} = {}) {
     'writeFile',
   ]
 
-  // original fs preserved before being promisified with pify
   const fs = {}
   const fsdebug = require('debug')('littlstar:cfs:drive:fs')
   Object.assign(drive, methods.reduce((d, m) => {
     fs[m] = drive[m].bind(drive)
     return Object.assign(d, {[m]: (...args) => {
       fsdebug("call %s", m, String(args[0]))
-      return pify(fs[m])(...args)
+      return fs[m](...args)
     }})
   }, {}))
 
   // monkey patch to throw correct fs error
-  const {rmdir} = fs
-  fs.rmdir = (dir, cb) => {
+  const {rmdir} = drive
+  drive.rmdir = (dir, cb) => {
     rmdir(dir, (err) => {
       if (err) {
         if (err.message.toLowerCase().match(/directory is not empty/)) {
-          return cb(Object.assign(new Error('ENOTEMPTY'), {
-            code: 'ENOTEMPTY'
-          }))
+          return cb(Object.assign(new Error('ENOTEMPTY'), {code: 'ENOTEMPTY'}))
         }
       }
-
       cb(err)
     })
   }
 
   // extra useful methods
   Object.assign(drive, {
-    fs: fs,
-    async mkdirp(dir) {
-      return pify(mkdirp)(dir, {fs})
-    },
-
-    async rimraf(dir) {
-      return pify(rimraf)(dir, fs)
-    },
-
-    async touch(path) {
-      try { await pify(fs.access)(path) }
-      catch (err) {
+    mkdirp(dir, cb) { return mkdirp(dir, {fs: drive}, cb) },
+    rimraf(dir, cb) { return rimraf(dir, drive, cb) },
+    touch(path, cb) {
+      drive.access(path, (err) => {
         // does not exist
-        return pify(fs.writeFile)(path, '')
-      }
+        if (err) { drive.writeFile(path, Buffer.from(''), cb) }
+        else { cb(null) }
+      })
     },
   })
 

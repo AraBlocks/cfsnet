@@ -9,16 +9,18 @@ async function createCFSLog({
   id,
   cfs,
   name = 'events',
-  discoveryKey,
+  key,
   flushInterval = 10000,
 } = {}) {
   const log =`/var/log/${name}`
-  const path = createCFSKeyPath({id, discoveryKey})
-  const stream = through(onwrite)
+  const path = createCFSKeyPath({id, key})
+  let  stream = through(onwrite)
   let writer = null
   let timeout = null
   cfs = cfs || drives[path] || null
   if (cfs) {
+    stream = through(onwrite)
+    stream.setMaxListeners(Infinity)
     debug("Initializing CFS log writer '%s' for '%s' with flush interval %dms",
       log,
       path,

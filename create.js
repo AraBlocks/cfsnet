@@ -36,18 +36,15 @@ async function ensureCFSRootDirectoryAccess() {
  * The "public key" is exposed on the HyperDrive instance as the property
  * `.key`. An optional "discovery public key" can be given for replication
  */
-async function createCFS({id, discoveryKey, force = false}) {
-  const path = createCFSKeyPath({id, discoveryKey})
+async function createCFS({id, key, path, force = false}) {
   let drive = null
-
+  path = path || createCFSKeyPath({id, key})
   await ensureCFSRootDirectoryAccess()
-
   if (drives[path]) { drive = drives[path] }
-
   if (null == drive) {
-    debug("Creating CFS drive from identifier '%s' with discoveryKey '%s'",
-      id, discoveryKey)
-    drive = await createCFSDrive({path, discoveryKey})
+    debug("Creating CFS drive from identifier '%s' with key '%s'",
+      id, key)
+    drive = await createCFSDrive({path, key})
   }
 
   try {
@@ -56,27 +53,31 @@ async function createCFS({id, discoveryKey, force = false}) {
     if (true === force) {
       try {
         debug("Forcing recreation of CFS")
-        await destroyCFS({id, discoveryKey})
-        return createCFS({id, discoveryKey})
+        await destroyCFS({id, key})
+        return createCFS({id, key})
       } catch (err) {
         debug("Failed to recreate CFS with error %s",
           err.message || err.stack || err)
       }
     }
-  } catch (err) { void err /** from fs.access() */ }
+  } catch (err) { console.log(err);void err /** from fs.access() */ }
 
   debug("Ensuring CFS drive is ready")
   // this needs to occur so a key can be generated
   await new Promise((resolve) => drive.ready(resolve))
-  if (null == drives[path]) {
-    await createCFSEventStream({drive})
-  }
+  if (!key) {
+    if (null == drives[path]) {
+      debug("Initializing CFS event stream")
+      await createCFSEventStream({drive})
+    }
 
-  await createCFSDirectories({id, drive, discoveryKey})
-  await createCFSFiles({id, drive, discoveryKey})
-  await drive.flushEvents()
-  if (drives[path]) {
-    await createCFSEventStream({drive})
+    debug("Ensuring file system integrity" )
+    await createCFSDirectories({id, drive, key})
+    await createCFSFiles({id, drive, key})
+    await drive.flushEvents()
+    if (drives[path]) {
+      await createCFSEventStream({drive})
+    }
   }
 
   debug("Caching CFS drive in CFSMAP")
@@ -102,32 +103,30 @@ async function createCFS({id, discoveryKey, force = false}) {
  *  * /var/cache - Contains cached files
  *
  */
-async function createCFSDirectories({id, drive, discoveryKey}) {
-  const path = createCFSKeyPath({id, discoveryKey})
-  drive = drive || drives[path] || await createCFSDrive({path, discoveryKey})
-  debug("Creating CFS directories for '%s' with discoveryKey '%s'",
-    path,
-    (drive.discoveryKey || drive.key).toString('hex'))
+async function createCFSDirectories({id, drive, key}) {
+  const path = createCFSKeyPath({id, key})
+  drive = drive || drives[path] || await createCFSDrive({path, key})
+  debug("Creating CFS directories for '%s' with key '%s'",
+    path, drive.key.toString('hex'))
   for (const dir of tree.directories) {
-    try { await drive.access(dir) }
+    try { await pify(drive.access)(dir) }
     catch(err) {
       debug("Creating directory '%s'", dir)
-      await drive.mkdir(dir)
+      await pify(drive.mkdir)(dir)
     }
   }
 }
 
-async function createCFSFiles({id, drive, discoveryKey}) {
+async function createCFSFiles({id, drive, key}) {
   const path = createCFSKeyPath({id})
-  drive = drive || drives[path] || await createCFSDrive({path, discoveryKey})
-  debug("Creating CFS files for '%s' with discoveryKey '%s'",
-    path,
-    (drive.discoveryKey || drive.key).toString('hex'))
+  drive = drive || drives[path] || await createCFSDrive({path, key})
+  debug("Creating CFS files for '%s' with key '%s'",
+    path, drive.key.toString('hex'))
   for (const file of tree.files) {
-    try { await drive.access(file) }
+    try { await pify(drive.access)(file) }
     catch (err) {
       debug("Creating file '%s'", file)
-      await drive.touch(file)
+      await pify(drive.touch)(file)
     }
   }
 }
@@ -135,10 +134,10 @@ async function createCFSFiles({id, drive, discoveryKey}) {
 async function createCFSEventStream({drive}) {
   if (drive.hasEventStream) { return }
   const log = '/var/log/events'
-  try { await drive.access(log) }
-  catch ({}) { await drive.touch(log) }
+  await pify(drive.ready)()
+  await pify(drive.touch)(log)
   const timestamp = () => Math.floor(Date.now()/1000) // unix timestamp (seconds)
-  const logs = String(await drive.readFile(log)).split('\n')
+  const logs = String(await pify(drive.readFile)(log)).split('\n')
   let eventCount = 0
   let timeout = setTimeout(flushEvents, LOG_EVENT_TIMEOUT)
   let logIndex = logs.length
