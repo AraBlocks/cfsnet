@@ -6,7 +6,8 @@ const debug = require('debug')('littlstar:cfs:env')
 /**
  * The root CFS ID that is usually the Littlstar user id.
  */
-const CFS_ROOT_ID = process.env.CFS_ROOT_ID || 0x000A // littlstar user ID (10)
+const CFS_ROOT_ID = process.env.CFS_ROOT_ID
+  || 'ea60d365bef27b80a2f2fc019c3c1eaa0a38682d8e361ce935ad9a0f' // littlstar user (10) apikey
 
 /**
  * The root CFS directory path on the machine's filesystem.
