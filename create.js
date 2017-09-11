@@ -82,6 +82,7 @@ async function createCFS({id, key, path, force = false}) {
 
   debug("Caching CFS drive in CFSMAP")
   drives[path] = drive
+  drive.id = id
 
   return drive
 }
