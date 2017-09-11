@@ -53,8 +53,8 @@ async function createCFS({id, key, path, force = false}) {
     if (true === force) {
       try {
         debug("Forcing recreation of CFS")
-        await destroyCFS({id, key})
-        return createCFS({id, key})
+        await destroyCFS({id, path, key})
+        return createCFS({id, path, key})
       } catch (err) {
         debug("Failed to recreate CFS with error %s",
           err.message || err.stack || err)
@@ -68,15 +68,15 @@ async function createCFS({id, key, path, force = false}) {
   if (!key) {
     if (null == drives[path]) {
       debug("Initializing CFS event stream")
-      await createCFSEventStream({drive})
+      await createCFSEventStream({path, drive})
     }
 
     debug("Ensuring file system integrity" )
-    await createCFSDirectories({id, drive, key})
-    await createCFSFiles({id, drive, key})
+    await createCFSDirectories({id, path, drive, key})
+    await createCFSFiles({id, path, drive, key})
     await drive.flushEvents()
     if (drives[path]) {
-      await createCFSEventStream({drive})
+      await createCFSEventStream({path, drive})
     }
   }
 
@@ -103,8 +103,8 @@ async function createCFS({id, key, path, force = false}) {
  *  * /var/cache - Contains cached files
  *
  */
-async function createCFSDirectories({id, drive, key}) {
-  const path = createCFSKeyPath({id, key})
+async function createCFSDirectories({id, path, drive, key}) {
+  path = path || createCFSKeyPath({id, key})
   drive = drive || drives[path] || await createCFSDrive({path, key})
   debug("Creating CFS directories for '%s' with key '%s'",
     path, drive.key.toString('hex'))
@@ -117,8 +117,8 @@ async function createCFSDirectories({id, drive, key}) {
   }
 }
 
-async function createCFSFiles({id, drive, key}) {
-  const path = createCFSKeyPath({id})
+async function createCFSFiles({id, path, drive, key}) {
+  path = path || createCFSKeyPath({id})
   drive = drive || drives[path] || await createCFSDrive({path, key})
   debug("Creating CFS files for '%s' with key '%s'",
     path, drive.key.toString('hex'))
