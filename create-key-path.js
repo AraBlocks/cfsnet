@@ -2,7 +2,7 @@
 
 const { CFS_ROOT_DIR } = require('./env')
 const { createSHA256 } = require('./sha256')
-const { resolve } = require('path')
+const { resolve, join } = require('path')
 
 /**
  * This function creates a CFS key path from a given identifier
@@ -10,7 +10,7 @@ const { resolve } = require('path')
  * against the `CFS_ROOT_DIR` environment variable.
  */
 
-function createCFSKeyPath({id, key} = {}) {
+function createCFSKeyPath({id} = {}) {
   const hash = createSHA256(String(id))
   const path = resolve(CFS_ROOT_DIR, hash)
   return path
