@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+'use strict'
+
+const { createServer } = require('../net')
+const debug = require('debug')('littlstar:cfs:server')
+
+const DEFAULT_PORT = 6889
+const argv = process.argv.slice(2)
+const port = DEFAULT_PORT // use minimist
+
+const server = createServer()
+
+server.listen(port, () =>  {
+  debug("Listening on port %d", port)
+})
+
+process.on('unhandledRejection', (err) => console.error(err.stack || err))

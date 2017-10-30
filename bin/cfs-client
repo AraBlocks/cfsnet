@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+'use strict'
+
+const { createCFS } = require('../create')
+const { connect } = require('../net')
+const reconnect = require('reconnect-core')
+
+process.on('unhandledRejection', (err) => console.error(err.stack || err))
+
+void async function main() {
+  const id = '44f986305a1a89b2a8a0cbf326401e3d90b04e55cf9b48154ebfb656'
+  const key = undefined
+  const cfs = await createCFS({id, key})
+  retry()
+  function retry() {
+    reconnect(connect)()
+      .connect({cfs, port: 6889}, console.log)
+      .on('error', (err) => console.error(err.message))
+      .on('connect', (socket) => {
+        socket.on('error', (err) => console.error(err.message))
+        console.log(socket);
+        console.log('%s', cfs.key.toString('hex'));
+      })
+  }
+}()
