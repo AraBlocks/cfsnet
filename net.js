@@ -9,6 +9,16 @@ const drives = require('./drives')
 const debug = require('debug')('littlstar:cfs:net')
 const net = require('net')
 
+const {
+  PROTOCOL_AUTH,
+  PROTOCOL_CFS,
+  PROTOCOL_CONNECT,
+  PROTOCOL_CREDENTIALS,
+  PROTOCOL_HANDSHAKE,
+  PROTOCOL_PULL,
+  PROTOCOL_PUSH
+} = require('./events')
+
 /**
  */
 function createServer() {
@@ -23,16 +33,16 @@ function createServer() {
     socket.once('close', () => { void connectionCount-- })
 
     await handshake.listen()
-    server.emit('protocol:connect')
+    server.emit(PROTOCOL_CONNECT)
     const {id, key} = await handshake.credentials()
-    server.emit('protocol:credentials', {id, key})
+    server.emit(PROTOCOL_CREDENTIALS, {id, key})
 
     if (id && key) {
       const path = await createCFSKeyPath({id, key})
       const cfs = drives[path] || await createCFS({id, key})
-      server.emit('protocol:cfs', cfs)
+      server.emit(PROTOCOL_CFS, cfs)
       const stream = await handshake.push()
-      server.emit('protocol:replicate', stream)
+      server.emit(PROTOCOL_PUSH, stream)
       cfs.replicate({stream})
       socket.pipe(stream).pipe(socket)
     }
@@ -46,46 +56,50 @@ function createServer() {
 function connect({port, hostname, id, key, cfs}) {
   const socket = net.connect(port, hostname)
   let handshake = null
-  process.nextTick(tick)
+  socket.once('connect', onconnect)
   return socket
-  async function tick() {
-    try {
-      handshake = new Handshake({socket})
-      socket.emit('protocol:handshake', handshake)
-    } catch (err) {
-      socket.emit('error', new Error("Failed to create handshake."))
-      return socket.end()
-    }
+  function onconnect() {
+    // we defer exeuction to the next tick to give socket consumers
+    // the opportunity to subscribe to protocol events
+    process.nextTick(async () => {
+      try {
+        handshake = new Handshake({socket})
+        socket.emit(PROTOCOL_HANDSHAKE, handshake)
+      } catch (err) {
+        socket.emit('error', new Error("Failed to create handshake."))
+        return socket.end()
+      }
 
-    try {
-      cfs = cfs || await createCFS({id, key})
-      id = id || cfs.id
-      socket.emit('protocol:cfs', {id, cfs})
-    } catch (err) {
-      socket.emit('error', new Error("Failed to create cfs."))
-      return socket.end()
-    }
+      try {
+        cfs = cfs || await createCFS({id, key})
+        id = id || cfs.id
+        socket.emit(PROTOCOL_CFS, {id, cfs})
+      } catch (err) {
+        socket.emit('error', new Error("Failed to create cfs."))
+        return socket.end()
+      }
 
-    try {
-      await handshake.connect()
-      socket.emit('protocol:connect')
-    } catch (err) {
-      socket.emit('error', new Error("Failed to initiate handshake connection."))
-      return socket.end()
-    }
+      try {
+        await handshake.connect()
+        socket.emit(PROTOCOL_CONNECT)
+      } catch (err) {
+        socket.emit('error', new Error("Failed to initiate handshake connection."))
+        return socket.end()
+      }
 
-    try {
-      await handshake.authenticate({id, key})
-      socket.emit('protocol:auth')
-      const stream = await handshake.pull()
-      socket.emit('protocol:replicated', stream)
-      cfs.replicate({stream})
-      stream.on('error', (err) => socket.emit('error', err))
-      socket.pipe(stream).pipe(socket)
-    } catch (err) {
-      socket.emit('error', new Error("Failed to initiate handshake authenication."))
-      return socket.end()
-    }
+      try {
+        await handshake.authenticate({id, key})
+        socket.emit(PROTOCOL_AUTH)
+        const stream = await handshake.pull()
+        socket.emit(PROTOCOL_PULL, stream)
+        cfs.replicate({stream})
+        stream.on('error', (err) => socket.emit('error', err))
+        socket.pipe(stream).pipe(socket)
+      } catch (err) {
+        socket.emit('error', new Error("Failed to initiate handshake authenication."))
+        return socket.end()
+      }
+    })
   }
 }
 
