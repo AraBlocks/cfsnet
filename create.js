@@ -131,9 +131,11 @@ async function createCFSFiles({id, path, drive, key}) {
   }
 
   const epochFile = '/etc/cfs-epoch'
-  const epoch = await pify(drive.readFile)(epochFile)
+  const epoch = await pify(drive.readFile)(epochFile, 'utf8')
   if (!epoch || !epoch.length) {
-    await pify(drive.writeFile)(epochFile, (Date.now()/1000)|0)
+    const timestamp = String((Date.now()/1000)|0)
+    debug("Writing CFS epoch '%s' to %s", timestamp, epochFile)
+    await pify(drive.writeFile)(epochFile, Buffer.from(timestamp))
   }
 }
 
