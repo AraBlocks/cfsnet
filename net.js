@@ -33,7 +33,7 @@ function createServer() {
     socket.once('close', () => { void connectionCount-- })
 
     await handshake.listen()
-    server.emit(PROTOCOL_CONNECT)
+    server.emit(PROTOCOL_CONNECT, socket)
     const {id, key} = await handshake.credentials()
     server.emit(PROTOCOL_CREDENTIALS, {id, key})
 
