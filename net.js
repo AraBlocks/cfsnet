@@ -101,7 +101,6 @@ function connect({port, hostname, id, key, cfs}) {
         await handshake.authenticate({id, key})
         socket.emit(PROTOCOL_AUTH)
 
-
         const stream = cfs.replicate({download: true, upload: false})
 
         stream.on('error', (err) => socket.emit('error', err))
