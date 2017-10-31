@@ -129,6 +129,12 @@ async function createCFSFiles({id, path, drive, key}) {
       await pify(drive.touch)(file)
     }
   }
+
+  const epochFile = '/etc/cfs-epoch'
+  const epoch = await pify(drive.readFile)(epochFile)
+  if (!epoch || !epoch.length) {
+    await pify(drive.writeFile)(epochFile, (Date.now()/1000)|0)
+  }
 }
 
 async function createCFSEventStream({drive}) {
