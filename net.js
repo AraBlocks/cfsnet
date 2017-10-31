@@ -44,7 +44,6 @@ function createServer() {
       const stream = await handshake.push()
       server.emit(PROTOCOL_PUSH, stream)
       //cfs.replicate({stream})
-      //cfs.replicate({stream})
       socket.pipe(cfs.replicate({upload: true, download: false})).pipe(socket)
       socket.on('end', () => {
         console.log('   END  ');
@@ -77,7 +76,7 @@ function connect({port, hostname, id, key, cfs}) {
       try {
         cfs = cfs || await createCFS({id, key})
         id = id || cfs.id
-        socket.emit(PROTOCOL_CFS, {id, cfs})
+        socket.emit(PROTOCOL_CFS, cfs)
       } catch (err) {
         socket.emit('error', new Error("Failed to create cfs."))
         return socket.end()
