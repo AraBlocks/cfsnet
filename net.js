@@ -53,7 +53,7 @@ function createServer() {
       server.emit(PROTOCOL_PUSH, stream)
 
       socket.pipe(stream).pipe(socket).on('end', () => {
-        console.log('   END  ');
+        debug("Socket did reach EOS")
       })
     }
   }
