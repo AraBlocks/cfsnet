@@ -2,7 +2,6 @@
 
 const { createCFSKeyPath } = require('./create-key-path')
 const { EventEmitter } = require('events')
-const protocol = require('hypercore-protocol')
 const debug = require('debug')('littlstar:cfs:protocol')
 const pify = require('pify')
 const amp = require('amp')
@@ -82,13 +81,6 @@ class HandshakeProtocol extends EventEmitter {
 
   static encodeState(state) { return Buffer.from(leftPadBytes(state)) }
   static decodeState(buffer) { return hexToInt(String(buffer)) }
-
-  static createHypercoreProtocolStream(opts) {
-    const stream = protocol(opts)
-    stream.setMaxListeners(Infinity)
-    stream.once('close', stream.destroy)
-    return stream
-  }
 
   static getProtocolStateString(state) {
     if ('number' == typeof state) {
@@ -446,8 +438,6 @@ class Handshake extends HandshakeProtocol {
     await this.receive(HandshakeProtocol.STREAM_ACK)
     await this.send(HandshakeProtocol.STREAM_PULL)
     await this.receive(HandshakeProtocol.STREAM_ACQ)
-    const stream = HandshakeProtocol.createHypercoreProtocolStream(opts)
-    return stream
   }
 
   async push(opts) {
@@ -456,8 +446,6 @@ class Handshake extends HandshakeProtocol {
     await this.send(HandshakeProtocol.STREAM_ACK)
     await this.receive(HandshakeProtocol.STREAM_PULL)
     await this.send(HandshakeProtocol.STREAM_ACQ)
-    const stream = HandshakeProtocol.createHypercoreProtocolStream(opts)
-    return stream
   }
 }
 

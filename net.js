@@ -38,14 +38,21 @@ function createServer() {
     server.emit(PROTOCOL_CREDENTIALS, {id, key})
 
     if (id && key) {
+      await handshake.push()
+
       const path = await createCFSKeyPath({id, key})
       const cfs = drives[path] || await createCFS({id, key})
       server.emit(PROTOCOL_CFS, cfs)
-      const stream = await handshake.push()
+
+      const stream = cfs.replicate({download: false, upload: true})
+
+      stream.setMaxListeners(Infinity)
+      stream.once('close', stream.destroy)
+      stream.on('error', (err) => socket.emit('error', err))
+
       server.emit(PROTOCOL_PUSH, stream)
-      //cfs.replicate({stream})
-      socket.pipe(cfs.replicate({upload: true, download: false})).pipe(socket)
-      socket.on('end', () => {
+
+      socket.pipe(stream).pipe(socket).on('end', () => {
         console.log('   END  ');
       })
     }
@@ -93,11 +100,18 @@ function connect({port, hostname, id, key, cfs}) {
       try {
         await handshake.authenticate({id, key})
         socket.emit(PROTOCOL_AUTH)
-        const stream = await handshake.pull()
-        socket.emit(PROTOCOL_PULL, stream)
-        //cfs.replicate({stream})
+
+
+        const stream = cfs.replicate({download: true, upload: false})
+
         stream.on('error', (err) => socket.emit('error', err))
-        socket.pipe(cfs.replicate({download: true, upload: false})).pipe(socket)
+        stream.setMaxListeners(Infinity)
+        stream.once('close', stream.destroy)
+
+        await handshake.pull()
+        socket.emit(PROTOCOL_PULL, stream)
+
+        socket.pipe(stream).pipe(socket)
       } catch (err) {
         socket.emit('error', new Error("Failed to initiate handshake authenication."))
         return socket.end()
