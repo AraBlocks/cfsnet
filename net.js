@@ -38,7 +38,7 @@ function createServer() {
  * This function will connect to a peer and return a proxy stream
  * that has a remote CFS replicated into it
  */
-function connect({port, hostname, create, id, key, cfs}) {
+function connect({port, hostname, id, key, cfs}) {
   const socket = net.connect(port, hostname)
   const handshake = new Handshake({socket})
   process.nextTick(tick)

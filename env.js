@@ -12,7 +12,7 @@ const CFS_ROOT_ID = process.env.CFS_ROOT_ID
 /**
  * The root CFS directory path on the machine's filesystem.
  */
-const CFS_ROOT_DIR = process.env.CFS_ROOT_DIR || resolve(__dirname, 'cfs')
+const CFS_ROOT_DIR = process.env.CFS_ROOT_DIR || resolve('cfs')
 
 /**
  * An optional discovery key for replication.
