@@ -12,6 +12,7 @@ const directories = [
 ]
 
 const files = [
+  '/etc/cfs-id',
   '/etc/cfs-epoch',
   '/var/log/events',
 ]

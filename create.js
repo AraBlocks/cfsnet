@@ -43,10 +43,7 @@ async function createCFS({id, key, path, force = false}) {
   if (null == drive) {
     debug("Creating CFS drive from identifier '%s' with key '%s'",
       id, key)
-
-    drive = Object.assign(await createCFSDrive({path, key}), {
-      id
-    })
+    drive = await createCFSDrive({path, key})
   }
 
   try {
@@ -85,6 +82,10 @@ async function createCFS({id, key, path, force = false}) {
   debug("Caching CFS drive in CFSMAP")
   drives[path] = drive
   drive.id = id
+  drive.HOME = `/home/${id}`
+
+  await pify(drive.mkdirp)(drive.HOME)
+  await pify(drive.writeFile)('/etc/cfs-id', Buffer.from(String(id)))
 
   return drive
 }
