@@ -419,14 +419,7 @@ class Handshake extends HandshakeProtocol {
     const auth = Buffer.from(JSON.stringify({id, key}))
     await this.ready()
     await this.send(HandshakeProtocol.AUTH, auth)
-    try { await this.receive(HandshakeProtocol.AUTH_ACCEPT) }
-    catch (err) {
-      if (err instanceof InvalidStateHandshakeProtocolError) {
-        await this.revert()
-        await this.receive(HandshakeProtocol.AUTH_DENY)
-        return false
-      }
-    }
+    await this.receive(HandshakeProtocol.AUTH_ACCEPT)
     return true
   }
 

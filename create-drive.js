@@ -9,7 +9,10 @@ async function createCFSDrive({path, key} = {}) {
   const drive = hyperdrive(path, key ? key : undefined)
   drive.setMaxListeners(Infinity)
   // wait for drive to be ready
-  await new Promise((resolve) => drive.ready(resolve))
+  await new Promise((resolve, reject) => {
+    drive.ready(resolve)
+    drive.once('error', reject)
+  })
   debug("Initializing CFS HyperDrive instance at '%s' with key '%s'",
     path,
     (drive.key || drive.key).toString('hex'))
