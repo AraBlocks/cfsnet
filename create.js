@@ -43,7 +43,10 @@ async function createCFS({id, key, path, force = false}) {
   if (null == drive) {
     debug("Creating CFS drive from identifier '%s' with key '%s'",
       id, key)
-    drive = await createCFSDrive({path, key})
+
+    drive = Object.assign(await createCFSDrive({path, key}), {
+      id
+    })
   }
 
   try {
@@ -59,7 +62,7 @@ async function createCFS({id, key, path, force = false}) {
           err.message || err.stack || err)
       }
     }
-  } catch (err) { console.log(err);void err /** from fs.access() */ }
+  } catch (err) { void err /** from fs.access() */ }
 
   debug("Ensuring CFS drive is ready")
   // this needs to occur so a key can be generated
