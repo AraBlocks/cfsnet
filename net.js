@@ -43,8 +43,12 @@ function createServer() {
       server.emit(PROTOCOL_CFS, cfs)
       const stream = await handshake.push()
       server.emit(PROTOCOL_PUSH, stream)
-      cfs.replicate({stream})
-      socket.pipe(stream).pipe(socket)
+      //cfs.replicate({stream})
+      //cfs.replicate({stream})
+      socket.pipe(cfs.replicate({upload: true, download: false})).pipe(socket)
+      socket.on('end', () => {
+        console.log('   END  ');
+      })
     }
   }
 }
@@ -92,9 +96,9 @@ function connect({port, hostname, id, key, cfs}) {
         socket.emit(PROTOCOL_AUTH)
         const stream = await handshake.pull()
         socket.emit(PROTOCOL_PULL, stream)
-        cfs.replicate({stream})
+        //cfs.replicate({stream})
         stream.on('error', (err) => socket.emit('error', err))
-        socket.pipe(stream).pipe(socket)
+        socket.pipe(cfs.replicate({download: true, upload: false})).pipe(socket)
       } catch (err) {
         socket.emit('error', new Error("Failed to initiate handshake authenication."))
         return socket.end()
