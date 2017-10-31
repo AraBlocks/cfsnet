@@ -35,9 +35,9 @@ function createServer() {
     await handshake.listen()
     server.emit(PROTOCOL_CONNECT, socket)
     const {id, key} = await handshake.credentials()
-    server.emit(PROTOCOL_CREDENTIALS, {id, key})
 
     if (id && key) {
+      server.emit(PROTOCOL_CREDENTIALS, {id, key})
       await handshake.push()
 
       const path = await createCFSKeyPath({id, key})

@@ -6,5 +6,10 @@ Object.assign(exports,
   require('./destroy'),
   require('./drives'),
   require('./env'),
+  require('./events'),
+  require('./net'),
+  require('./protocol'),
+  require('./sha256'),
+  require('./swarm'),
   require('./tree')
 )
