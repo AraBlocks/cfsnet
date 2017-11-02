@@ -1,11 +1,13 @@
 'use strict'
 
+const { normalizeCFSKey } = require('./key')
 const hyperdrive = require('hyperdrive')
 const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
 const debug = require('debug')('littlstar:cfs:create:drive')
 
 async function createCFSDrive({path, key} = {}) {
+  key = normalizeCFSKey(key)
   const drive = hyperdrive(path, key ? key : undefined)
   drive.setMaxListeners(Infinity)
   // wait for drive to be ready

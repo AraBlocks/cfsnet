@@ -2,6 +2,7 @@
 
 const { InvalidStateHandshakeProtocolError } = require('./protocol')
 const { createCFSKeyPath } = require('./create-key-path')
+const { normalizeCFSKey } = require('./key')
 const { Handshake } = require('./protocol')
 const { createCFS } = require('./create')
 const through = require('through2')
@@ -64,6 +65,7 @@ function createServer() {
  * that has a remote CFS replicated into it
  */
 function connect({port, hostname, id, key, cfs}) {
+  key = normalizeCFSKey(key)
   const socket = net.connect(port, hostname)
   let handshake = null
   socket.once('connect', onconnect)

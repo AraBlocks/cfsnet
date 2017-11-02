@@ -1,12 +1,13 @@
 'use strict'
 
 const { createCFSKeyPath } = require('./create-key-path')
+const { normalizeCFSKey } = require('./key')
 const { EventEmitter } = require('events')
 const debug = require('debug')('littlstar:cfs:protocol')
 const pify = require('pify')
 const amp = require('amp')
 
-const HANDSHAKE_READ_TIMEOUT = 1000
+const kHandshakeReadTimeout = 1000
 
 /**
  * This class represents a handshake between a client and server
@@ -408,6 +409,7 @@ class Handshake extends HandshakeProtocol {
 
     if (id instanceof Buffer) { id = id.toString('hex') }
     if (key && key instanceof Buffer) { key = key.toString('hex') }
+    key = normalizeCFSKey(key)
     const auth = Buffer.from(JSON.stringify({id, key}))
     await this.ready()
     await this.send(HandshakeProtocol.AUTH, auth)
@@ -422,6 +424,7 @@ class Handshake extends HandshakeProtocol {
     const auth = buffer[1]
     const pair = JSON.parse(String(auth))
     if (pair.id && pair.key) {
+      pair.key = normalizeCFSKey(pair.key)
       const path = await createCFSKeyPath({id: pair.id, key: pair.key})
       if (drives[path]) {
         await this.send(Handshake.AUTH_ACCEPT)

@@ -1,5 +1,6 @@
 'use strict'
 
+const { normalizeCFSKey } = require('./key')
 const { createCFSKeyPath } = require('./create-key-path')
 const { CFS_ROOT_DIR } = require('./env')
 const { resolve } = require('path')
@@ -16,6 +17,7 @@ const pify = require('pify')
  */
 
 async function destroyCFS({id, key} = {}) {
+  key = normalizeCFSKey(key)
   const path = createCFSKeyPath({id, key})
   const drive = drives[path] || createCFSKeyPath({id, key})
   if (drive) {

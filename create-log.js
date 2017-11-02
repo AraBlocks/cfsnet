@@ -1,6 +1,7 @@
 'use strict'
 
 const { createCFSKeyPath } = require('./create-key-path')
+const { normalizeCFSKey } = require('./key')
 const through = require('through')
 const drives = require('./drives')
 const debug = require('debug')('littlstar:cfs:log')
@@ -12,6 +13,7 @@ async function createCFSLog({
   key,
   flushInterval = 10000,
 } = {}) {
+  key = normalizeCFSKey(key)
   const log =`/var/log/${name}`
   const path = createCFSKeyPath({id, key})
   let  stream = through(onwrite)

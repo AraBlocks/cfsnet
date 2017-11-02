@@ -1,5 +1,6 @@
 'use strict'
 
+const { normalizeCFSKey } = require('./key')
 const { CFS_ROOT_ID } = require('./env')
 const { createCFS } = require('./create')
 const debug = require('debug')('littlstar:cfs:create:lcfs')
@@ -10,6 +11,7 @@ const debug = require('debug')('littlstar:cfs:create:lcfs')
  */
 async function createLCFS({key, force = false}) {
   debug("Creating LCFS with key '%s'", key)
+  key = normalizeCFSKey(key)
   return createCFS({id: CFS_ROOT_ID, key, force})
 }
 
