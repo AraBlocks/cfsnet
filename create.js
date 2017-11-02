@@ -68,8 +68,13 @@ async function createCFS({id, key, path, force = false}) {
   // this needs to occur so a key can be generated
   await new Promise((resolve) => drive.ready(resolve))
 
-  drive.id = id
-  drive.HOME = `/home/${id}`
+  if (id) {
+    drive.id = id
+    drive.HOME = `/home/${id}`
+  } else {
+    drive.id = null
+    drive.HOME = `/root`
+  }
 
   if (!key) {
     if (null == drives[path]) {
@@ -80,7 +85,9 @@ async function createCFS({id, key, path, force = false}) {
     debug("Ensuring file system integrity" )
     await createCFSDirectories({id, path, drive, key})
     await createCFSFiles({id, path, drive, key})
-    await pify(drive.mkdirp)(drive.HOME)
+    if (drive.id && drive.HOME) {
+      await pify(drive.mkdirp)(drive.HOME)
+    }
     await pify(drive.writeFile)('/etc/cfs-id', Buffer.from(String(id)))
     await drive.flushEvents()
     if (drives[path]) {
