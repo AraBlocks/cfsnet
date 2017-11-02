@@ -1,5 +1,7 @@
 'use strict'
+
 const { createCFSKeyPath } = require('./create-key-path')
+const { normalizeCFSKey } = required('./key')
 const { createCFSDrive } = require('./create-drive')
 const { CFS_ROOT_DIR } = require('./env')
 const { destroyCFS } = require('./destroy')
@@ -13,7 +15,7 @@ const tree = require('./tree')
 const pify = require('pify')
 const ms = require('ms')
 
-const LOG_EVENT_TIMEOUT = ms('10m')
+const kLogEventTimeout = ms('10m')
 
 /**
  * Politely ensure the root CFS directory has access, otherwise
@@ -36,6 +38,7 @@ async function ensureCFSRootDirectoryAccess() {
  * `.key`. An optional "discovery public key" can be given for replication
  */
 async function createCFS({id, key, path, force = false}) {
+  key = normalizeCFSKey(key)
   let drive = null
   path = path || createCFSKeyPath({id, key})
   await ensureCFSRootDirectoryAccess()
@@ -152,7 +155,7 @@ async function createCFSEventStream({drive}) {
   const timestamp = () => Math.floor(Date.now()/1000) // unix timestamp (seconds)
   const logs = String(await pify(drive.readFile)(log)).split('\n')
   let eventCount = 0
-  let timeout = setTimeout(flushEvents, LOG_EVENT_TIMEOUT)
+  let timeout = setTimeout(flushEvents, kLogEventTimeout)
   let logIndex = logs.length
   let logsSeen = 0
   drive.history({live: true}).on('data', async (event) => {
@@ -170,7 +173,7 @@ async function createCFSEventStream({drive}) {
   setTimeout(flushEvents, 0)
   async function flushEvents() {
     clearTimeout(timeout)
-    timeout = setTimeout(flushEvents, LOG_EVENT_TIMEOUT)
+    timeout = setTimeout(flushEvents, kLogEventTimeout)
     if (0 == eventCount) { return }
     logs.push(JSON.stringify({type: "flush", timestamp: timestamp()}))
     debug("Flushing logs to '%s'", log)
