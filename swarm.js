@@ -13,9 +13,6 @@ async function createCFSDiscoverySwarm({cfs, id, key}) {
   const swarm = discovery(cfs, {
     dns: {domain: 'cfs.local'}
   })
-  swarm.on('connection', (peer, info) => {
-    console.log('peer', info);
-  })
   return swarm
 }
 
