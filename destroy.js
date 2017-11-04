@@ -24,9 +24,15 @@ async function destroyCFS({cfs, id, key, path} = {}) {
     debug("Destroying CFS at path '%s' with key",
       path, drive.key ? drive.key.toString('hex') : null)
 
-    await pify(drive.rimraf)('/')
-    await pify(drive.close)()
-    await pify(rimraf)(path)
+    try {
+      await pify(drive.rimraf)('/')
+      await pify(drive.close)()
+    } catch (err) { debug("Failed to remove files in drive") }
+
+    if ('/' != path.trim()) {
+      await pify(rimraf)(path.trim())
+    }
+
     debug("Purging CFS drive in CFSMAP")
     delete drives[path]
     return true

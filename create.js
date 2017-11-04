@@ -184,7 +184,7 @@ async function createCFSEventStream({drive}) {
     if (0 == eventCount) { return }
     logs.push(JSON.stringify({type: "flush", timestamp: timestamp()}))
     debug("Flushing logs to '%s'", log)
-    await drive.writeFile(log, logs.join('\n'))
+    await pify(drive.writeFile)(log, logs.join('\n'))
     eventCount = 0
   }
 }

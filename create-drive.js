@@ -6,9 +6,12 @@ const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
 const debug = require('debug')('littlstar:cfs:create:drive')
 
-async function createCFSDrive({path, key} = {}) {
+async function createCFSDrive({path, key, sparse = true} = {}) {
   key = normalizeCFSKey(key)
-  const drive = hyperdrive(path, key ? key : undefined)
+  const drive = hyperdrive(path, key ? key : undefined, {
+    sparse: sparse ? true : false,
+    sparseMetadata: sparse ? true : false,
+  })
   drive.setMaxListeners(Infinity)
   // wait for drive to be ready
   await new Promise((resolve, reject) => {
@@ -37,7 +40,9 @@ async function createCFSDrive({path, key} = {}) {
   Object.assign(drive, methods.reduce((d, m) => {
     fs[m] = drive[m].bind(drive)
     return Object.assign(d, {[m]: (...args) => {
-      fsdebug("call %s", m, String(args[0]))
+      if ('function' != typeof args[0]) {
+        fsdebug("call %s", m, String(args[0]))
+      }
       return fs[m](...args)
     }})
   }, {}))
