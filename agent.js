@@ -2,6 +2,7 @@
 
 const { parse } = require('url')
 const { join } = require('path')
+const debug = require('debug')('littlstar:cfs:agent')
 const agent = require('superagent')
 
 const kDefaultHTTPPort = 80
@@ -57,6 +58,12 @@ class CFSNetworkAgent {
   }
 
   async request({method, uri, data, retry, headers, query}) {
+    if (!method || 'string' != typeof method) {
+      throw new TypeError("CFSNetworkAgent.request(): Expecting method to be a string")
+    }
+    if (!uri || 'string' != typeof uri) {
+      throw new TypeError("CFSNetworkAgent.request(): Expecting uri to be a string")
+    }
     // normalize method to an actual usable "superagent" module method name
     method = method.toLowerCase()
     return new Promise((resolve, reject) => {
@@ -64,14 +71,18 @@ class CFSNetworkAgent {
       // the protocol, hostname, and port are prefixed to URI
       // paths that begin with `/`, otherwise the URI is treated
       // as the URL to the request
-      const url = '/' == uri[0] ? join(this.href, uri) : uri
-      const request = agent[method](url)
+      let url = uri
+      if ('/' == uri[0]) {
+        url = `${this.protocol}//${join(this.host, uri)}`
+      }
 
-      // configure request based on input
+      // create and configure request based on input
+      debug("Creating %s request to %s", method.toUpperCase(), url)
+      const request = agent[method](url)
       if (data) { request.send(data) }
-      if (query) { requeset.query(query) }
-      if (headers) { request.set(headers) }
       if (retry) { request.retry(retry) }
+      if (query) { request.query(query) }
+      if (headers) { request.set(headers) }
 
       // make actual request and resolve or reject response
       // for promise returned by the function
