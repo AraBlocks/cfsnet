@@ -37,7 +37,7 @@ async function ensureCFSRootDirectoryAccess() {
  * The "public key" is exposed on the HyperDrive instance as the property
  * `.key`. An optional "discovery public key" can be given for replication
  */
-async function createCFS({id, key, path, force = false}) {
+async function createCFS({id, key, path, force = false, sparse = true}) {
   key = normalizeCFSKey(key)
   let drive = null
   path = path || createCFSKeyPath({id, key})
@@ -46,7 +46,7 @@ async function createCFS({id, key, path, force = false}) {
   if (null == drive) {
     debug("Creating CFS drive from identifier '%s' with key '%s'",
       id, key)
-    drive = await createCFSDrive({path, key})
+    drive = await createCFSDrive({path, key, sparse})
   }
 
   try {
@@ -83,8 +83,8 @@ async function createCFS({id, key, path, force = false}) {
     }
 
     debug("Ensuring file system integrity" )
-    await createCFSDirectories({id, path, drive, key})
-    await createCFSFiles({id, path, drive, key})
+    await createCFSDirectories({id, path, drive, key, sparse})
+    await createCFSFiles({id, path, drive, key, sparse})
     if (drive.id && drive.HOME) {
       await pify(drive.mkdirp)(drive.HOME)
     }
@@ -118,9 +118,9 @@ async function createCFS({id, key, path, force = false}) {
  *  * /var/cache - Contains cached files
  *
  */
-async function createCFSDirectories({id, path, drive, key}) {
+async function createCFSDirectories({id, path, drive, key, sparse}) {
   path = path || createCFSKeyPath({id, key})
-  drive = drive || drives[path] || await createCFSDrive({path, key})
+  drive = drive || drives[path] || await createCFSDrive({path, key, sparse})
   debug("Creating CFS directories for '%s' with key '%s'",
     path, drive.key.toString('hex'))
   for (const dir of tree.directories) {
@@ -132,9 +132,9 @@ async function createCFSDirectories({id, path, drive, key}) {
   }
 }
 
-async function createCFSFiles({id, path, drive, key}) {
+async function createCFSFiles({id, path, drive, key, sparse}) {
   path = path || createCFSKeyPath({id})
-  drive = drive || drives[path] || await createCFSDrive({path, key})
+  drive = drive || drives[path] || await createCFSDrive({path, key, sparse})
   debug("Creating CFS files for '%s' with key '%s'",
     path, drive.key.toString('hex'))
   for (const file of tree.files) {

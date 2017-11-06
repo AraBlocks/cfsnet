@@ -20,7 +20,7 @@ async function createCFSDrive({path, key, sparse = true} = {}) {
   })
   debug("Initializing CFS HyperDrive instance at '%s' with key '%s'",
     path,
-    (drive.key || drive.key).toString('hex'))
+    (drive.key || Buffer(0)).toString('hex'))
 
   const methods = [
     'stat',
