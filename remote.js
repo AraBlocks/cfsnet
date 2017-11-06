@@ -23,6 +23,16 @@ class CFSRemote extends CFSNetworkAgent {
       }
     })
   }
+
+  async status({id, key}) {
+    return this.post({
+      uri: '/status',
+      headers: {
+        [kCFSKeyHeader]: key,
+        [kCFSIDHeader]: id,
+      }
+    })
+  }
 }
 
 module.exports = {
