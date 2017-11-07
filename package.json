@@ -4,6 +4,7 @@
   "description": "Littlstar CFS Module",
   "main": "index.js",
   "scripts": {
+    "dependency-check": "dependency-check .",
     "test": ":"
   },
   "author": "Joseph Werle <werle@littlstar.com>",
@@ -22,5 +23,8 @@
     "rimraf": "^2.6.1",
     "through": "^2.3.8",
     "through2": "^2.0.3"
+  },
+  "devDependencies": {
+    "dependency-check": "^2.9.1"
   }
 }
