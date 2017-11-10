@@ -15,11 +15,14 @@ async function createCFSDiscoverySwarm({cfs, id, key, dns = {}, dht = {}}) {
   id = id || cfs.id
   const swarm = discovery(cfs, {
     dns: {
-      domain: dns.domain || 'cfs.local',
-      server: dns.server || 'dns.littlstar.com',
+      domain: dns.domain || 'Littlstar.local',
+      server: dns.server || 'dns-service.us-east-1.littlstar.com',
     },
     dht: {
-      bootstrap: dht.bootstrap || 'dht.littlstar.com:6881',
+      bootstrap: dht.bootstrap || [
+        {host: 'dht-service.us-east-1.littlstar.com', port: 6881},
+        {host: 'localhost', port: 6881}
+      ],
     }
   })
   return swarm
