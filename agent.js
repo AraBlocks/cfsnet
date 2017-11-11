@@ -5,8 +5,12 @@ const { join } = require('path')
 const debug = require('debug')('littlstar:cfs:agent')
 const agent = require('superagent')
 
+const kHTTPProtocol = 'http:'
+const kHTTPSProtocol = 'https:'
+
 const kDefaultHTTPPort = 80
-const kDefaultHTTPProtocol = 'https:'
+const kDefaultHTTSPPort = 443
+const kDefaultHTTPProtocol = kHTTPProtocol
 
 class CFSNetworkAgent {
   constructor(hostname, port) {
@@ -26,7 +30,13 @@ class CFSNetworkAgent {
     }
 
     this.hostname = hostname
-    this.port = port || kDefaultHTTPPort
+    if (port) {
+      this.port = port
+    } else if (kHTTPSProtocol == this.protocol) {
+      this.port = kDefaultHTTSPPort
+    } else {
+      this.port = kDefaultHTTPPort
+    }
   }
 
   get host() {
