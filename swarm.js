@@ -44,6 +44,7 @@ async function createCFSDiscoverySwarm({
       ],
     }
   })
+  swarm.setMaxListeners(Infinity)
   return swarm
 }
 
