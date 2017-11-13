@@ -35,11 +35,11 @@ async function createCFSDiscoverySwarm({
     upload, download,
     dns: {
       domain: dns.domain || 'Littlstar.local',
-      server: dns.server || 'dns-service.us-east-1.littlstar.com',
+      server: dns.server || 'dns.us-east-1.littlstar.com',
     },
     dht: {
       bootstrap: dht.bootstrap || [
-        {host: 'dht-service.us-east-1.littlstar.com', port: 6881},
+        {host: 'dht.us-east-1.littlstar.com', port: 6881},
         {host: 'localhost', port: 6881}
       ],
     }
