@@ -40,7 +40,6 @@ async function createCFSDiscoverySwarm({
     dht: {
       bootstrap: dht.bootstrap || [
         {host: 'dht.us-east-1.littlstar.com', port: 6881},
-        {host: 'localhost', port: 6881}
       ],
     }
   })
