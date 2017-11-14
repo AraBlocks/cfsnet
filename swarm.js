@@ -40,7 +40,7 @@ async function createCFSDiscoverySwarm({
       server: dns.server || 'dns.us-east-1.littlstar.com',
     },
     dht: {
-      ttl: 30,
+      ttl: 3000,
       bootstrap: dht.bootstrap || [
         {host: 'dht.us-east-1.littlstar.com', port: 6881},
       ],

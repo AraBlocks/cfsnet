@@ -37,7 +37,7 @@ async function ensureCFSRootDirectoryAccess() {
  * The "public key" is exposed on the HyperDrive instance as the property
  * `.key`. An optional "discovery public key" can be given for replication
  */
-async function createCFS({id, key, path, force = false, sparse = true}) {
+async function createCFS({id, key, path, force = false, sparse = true, eventStream = true}) {
   key = normalizeCFSKey(key)
   let drive = null
   path = path || createCFSKeyPath({id, key})
@@ -79,7 +79,7 @@ async function createCFS({id, key, path, force = false, sparse = true}) {
   if (!key) {
     if (null == drives[path]) {
       debug("Initializing CFS event stream")
-      await createCFSEventStream({path, drive})
+      await createCFSEventStream({path, drive, enabled: eventStream})
     }
 
     debug("Ensuring file system integrity" )
@@ -91,7 +91,7 @@ async function createCFS({id, key, path, force = false, sparse = true}) {
     await pify(drive.writeFile)('/etc/cfs-id', Buffer.from(String(id)))
     await drive.flushEvents()
     if (drives[path]) {
-      await createCFSEventStream({path, drive})
+      await createCFSEventStream({path, drive, enabled: eventStream})
     }
   }
 
@@ -124,11 +124,8 @@ async function createCFSDirectories({id, path, drive, key, sparse}) {
   debug("Creating CFS directories for '%s' with key '%s'",
     path, drive.key.toString('hex'))
   for (const dir of tree.directories) {
-    try { await pify(drive.access)(dir) }
-    catch(err) {
-      debug("Creating directory '%s'", dir)
-      await pify(drive.mkdir)(dir)
-    }
+    debug("Creating directory '%s'", dir)
+    await pify(drive.mkdirp)(dir)
   }
 }
 
@@ -138,11 +135,8 @@ async function createCFSFiles({id, path, drive, key, sparse}) {
   debug("Creating CFS files for '%s' with key '%s'",
     path, drive.key.toString('hex'))
   for (const file of tree.files) {
-    try { await pify(drive.access)(file) }
-    catch (err) {
-      debug("Creating file '%s'", file)
-      await pify(drive.touch)(file)
-    }
+    debug("Creating file '%s'", file)
+    await pify(drive.touch)(file)
   }
 
   const epochFile = '/etc/cfs-epoch'
@@ -154,7 +148,7 @@ async function createCFSFiles({id, path, drive, key, sparse}) {
   }
 }
 
-async function createCFSEventStream({drive}) {
+async function createCFSEventStream({drive, enabled = true}) {
   if (drive.hasEventStream) { return }
   const log = '/var/log/events'
   await pify(drive.ready)()
@@ -162,22 +156,25 @@ async function createCFSEventStream({drive}) {
   const timestamp = () => Math.floor(Date.now()/1000) // unix timestamp (seconds)
   const logs = String(await pify(drive.readFile)(log)).split('\n')
   let eventCount = 0
-  let timeout = setTimeout(flushEvents, kLogEventTimeout)
+  let timeout = 0
   let logIndex = logs.length
   let logsSeen = 0
-  drive.history({live: true}).on('data', async (event) => {
-    if (log == event.name) { return }
-    if (logsSeen++ < logIndex) { return }
-    Object.assign(event, {timestamp: timestamp()})
-    const entry = JSON.stringify(event)
-    debug("event:", entry)
-    logs.push(entry)
-    if (++eventCount > 10) { await flushEvents() }
-  })
+  if (enabled) {
+    timeout = setTimeout(flushEvents, kLogEventTimeout)
+    setTimeout(flushEvents, 0)
+    drive.history({live: true}).on('data', async (event) => {
+      if (log == event.name) { return }
+      if (logsSeen++ < logIndex) { return }
+      Object.assign(event, {timestamp: timestamp()})
+      const entry = JSON.stringify(event)
+      debug("event:", entry)
+      logs.push(entry)
+      if (++eventCount > 10) { await flushEvents() }
+    })
+    process.once('exit', async () => await flushEvents())
+  }
   drive.hasEventStream = true
   drive.flushEvents = flushEvents
-  process.once('exit', async () => await flushEvents())
-  setTimeout(flushEvents, 0)
   async function flushEvents() {
     clearTimeout(timeout)
     timeout = setTimeout(flushEvents, kLogEventTimeout)

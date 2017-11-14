@@ -67,7 +67,7 @@ async function createCFSDrive({path, key, sparse = true} = {}) {
     touch(path, cb) {
       drive.access(path, (err) => {
         // does not exist
-        if (err) { drive.writeFile(path, Buffer.from(''), cb) }
+        if (err) { drive.writeFile(path, Buffer.from('\n'), cb) }
         else { cb(null) }
       })
     },
