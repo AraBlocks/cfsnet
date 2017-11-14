@@ -13,7 +13,8 @@ async function createCFSLog({
   key,
   flushInterval = 10000,
 } = {}) {
-  key = normalizeCFSKey(key)
+  key = key ? normalizeCFSKey(key) : cfs ? cfs.key.toString('hex') : null
+  id = id ? id : cfs ? cfs.identifier : null
   const log =`/var/log/${name}`
   const path = createCFSKeyPath({id, key})
   let  stream = through(onwrite)

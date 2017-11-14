@@ -29,15 +29,18 @@ async function createCFSDiscoverySwarm({
   dns = {},
   dht = {}
 } = {}) {
-  key = normalizeCFSKey(key)
+  key = key ? normalizeCFSKey(key) : cfs ? cfs.key.toString('hex') : null
+  id = id ? id : cfs ? cfs.identifier : null
   cfs = cfs || await createCFS({id, key})
   const swarm = discovery(cfs, {
     upload, download,
     dns: {
+      ttl: 30,
       domain: dns.domain || 'Littlstar.local',
       server: dns.server || 'dns.us-east-1.littlstar.com',
     },
     dht: {
+      ttl: 30,
       bootstrap: dht.bootstrap || [
         {host: 'dht.us-east-1.littlstar.com', port: 6881},
       ],

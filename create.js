@@ -69,10 +69,10 @@ async function createCFS({id, key, path, force = false, sparse = true}) {
   await new Promise((resolve) => drive.ready(resolve))
 
   if (id) {
-    drive.id = id
+    drive.identifier = id
     drive.HOME = `/home/${id}`
   } else {
-    drive.id = null
+    drive.identifier = null
     drive.HOME = `/root`
   }
 
@@ -85,7 +85,7 @@ async function createCFS({id, key, path, force = false, sparse = true}) {
     debug("Ensuring file system integrity" )
     await createCFSDirectories({id, path, drive, key, sparse})
     await createCFSFiles({id, path, drive, key, sparse})
-    if (drive.id && drive.HOME) {
+    if (drive.identifier && drive.HOME) {
       await pify(drive.mkdirp)(drive.HOME)
     }
     await pify(drive.writeFile)('/etc/cfs-id', Buffer.from(String(id)))

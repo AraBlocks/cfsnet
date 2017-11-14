@@ -16,8 +16,9 @@ const pify = require('pify')
  * from disk, and removed from the shared CFS drive map.
  */
 
-async function destroyCFS({cfs, id, key, path} = {}) {
-  key = normalizeCFSKey(key)
+async function destroyCFS({cfs, id, key, path, destroyPath = false} = {}) {
+  key = key ? normalizeCFSKey(key) : cfs ? cfs.key.toString('hex') : null
+  id = id ? id : cfs ? cfs.identifier : null
   path = path || createCFSKeyPath({id, key})
   const drive = cfs || drives[path]
   if (drive) {
@@ -25,11 +26,13 @@ async function destroyCFS({cfs, id, key, path} = {}) {
       path, drive.key ? drive.key.toString('hex') : null)
 
     try {
-      await pify(drive.rimraf)('/')
+      if ((await pify(drive.readdir)('/')).length) {
+        await pify(drive.rimraf)('/')
+      }
       await pify(drive.close)()
     } catch (err) { debug("Failed to remove files in drive") }
 
-    if ('/' != path.trim()) {
+    if (destroyPath && '/' != path.trim()) {
       await pify(rimraf)(path.trim())
     }
 

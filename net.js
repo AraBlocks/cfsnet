@@ -84,7 +84,7 @@ function connect({port, hostname, id, key, cfs}) {
 
       try {
         cfs = cfs || await createCFS({id, key})
-        id = id || cfs.id
+        id = id || cfs.identifier
         socket.emit(PROTOCOL_CFS, cfs)
       } catch (err) {
         socket.emit('error', new Error("Failed to create cfs."))
