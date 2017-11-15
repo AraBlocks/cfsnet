@@ -24,7 +24,7 @@ async function createCFSDiscoverySwarm({
   cfs = null,
   key = null,
   id = null,
-  maxConnections = 5,
+  maxConnections = 10,
   download = true,
   upload = true,
   dns = {},
@@ -43,8 +43,8 @@ async function createCFSDiscoverySwarm({
       server: dns.server || 'dns.us-east-1.littlstar.com',
     },
     dht: {
-      maxTables: dht.maxTables || 1000,
-      maxPeers: dht.maxPeers || 100,
+      maxTables: dht.maxTables || 10000,
+      maxPeers: dht.maxPeers || 1000,
       bootstrap: dht.bootstrap || [
         {host: 'dht.us-east-1.littlstar.com', port: 6881},
       ],
