@@ -26,8 +26,8 @@ async function destroyCFS({cfs, id, key, path, destroyPath = false, autoClose = 
       path, drive.key ? drive.key.toString('hex') : null)
 
     try {
-      if ((await pify(drive.readdir)('/')).length) {
-        await pify(drive.rimraf)('/')
+      if ((await pify(drive.readdir)(cfs.HOME)).length) {
+        await pify(drive.rimraf)(cfs.HOME)
       }
       if (autoClose) {
         await pify(drive.close)()
