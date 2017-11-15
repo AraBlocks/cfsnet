@@ -37,17 +37,26 @@ async function ensureCFSRootDirectoryAccess() {
  * The "public key" is exposed on the HyperDrive instance as the property
  * `.key`. An optional "discovery public key" can be given for replication
  */
-async function createCFS({id, key, path, force = false, sparse = true, eventStream = true}) {
-  key = normalizeCFSKey(key)
-  let drive = null
-  path = path || createCFSKeyPath({id, key})
+async function createCFS({
+  id = null,
+  key = null,
+  path = null,
+  force = false,
+  sparse = true,
+  eventStream = true,
+}) {
   await ensureCFSRootDirectoryAccess()
-  if (drives[path]) { drive = drives[path] }
-  if (null == drive) {
-    debug("Creating CFS drive from identifier '%s' with key '%s'",
-      id, key)
-    drive = await createCFSDrive({path, key, sparse})
+
+  key = normalizeCFSKey(key)
+  path = path || createCFSKeyPath({id, key})
+
+
+  if (drives[path]) {
+    return drives[path]
   }
+
+  debug("Creating CFS drive from identifier '%s' with key '%s'", id, key)
+  const drive = await createCFSDrive({path, key, sparse})
 
   try {
     await pify(access)(path)
@@ -64,8 +73,8 @@ async function createCFS({id, key, path, force = false, sparse = true, eventStre
     }
   } catch (err) { void err /** from fs.access() */ }
 
-  debug("Ensuring CFS drive is ready")
   // this needs to occur so a key can be generated
+  debug("Ensuring CFS drive is ready")
   await new Promise((resolve) => drive.ready(resolve))
 
   if (id) {
@@ -85,11 +94,14 @@ async function createCFS({id, key, path, force = false, sparse = true, eventStre
     debug("Ensuring file system integrity" )
     await createCFSDirectories({id, path, drive, key, sparse})
     await createCFSFiles({id, path, drive, key, sparse})
+
     if (drive.identifier && drive.HOME) {
       await pify(drive.mkdirp)(drive.HOME)
     }
+
     await pify(drive.writeFile)('/etc/cfs-id', Buffer.from(String(id)))
     await drive.flushEvents()
+
     if (drives[path]) {
       await createCFSEventStream({path, drive, enabled: eventStream})
     }
