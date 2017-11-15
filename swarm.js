@@ -24,7 +24,7 @@ async function createCFSDiscoverySwarm({
   cfs = null,
   key = null,
   id = null,
-  maxConnections = 10,
+  maxConnections = 60,
   download = true,
   upload = true,
   dns = {},
