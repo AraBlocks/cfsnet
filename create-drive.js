@@ -10,7 +10,7 @@ async function createCFSDrive({path, key, sparse = true} = {}) {
   key = normalizeCFSKey(key)
   const drive = hyperdrive(path, key ? key : undefined, {
     sparse: sparse ? true : false,
-    sparseMetadata: sparse ? true : false,
+    sparseMetadata: false
   })
   drive.setMaxListeners(Infinity)
   // wait for drive to be ready

@@ -121,10 +121,10 @@ async function createCFS({id, key, path, force = false, sparse = true, eventStre
 async function createCFSDirectories({id, path, drive, key, sparse}) {
   path = path || createCFSKeyPath({id, key})
   drive = drive || drives[path] || await createCFSDrive({path, key, sparse})
-  debug("Creating CFS directories for '%s' with key '%s'",
+  debug("Ensuring CFS directories for '%s' with key '%s'",
     path, drive.key.toString('hex'))
   for (const dir of tree.directories) {
-    debug("Creating directory '%s'", dir)
+    debug("Ensuring directory '%s'", dir)
     await pify(drive.mkdirp)(dir)
   }
 }
@@ -132,10 +132,10 @@ async function createCFSDirectories({id, path, drive, key, sparse}) {
 async function createCFSFiles({id, path, drive, key, sparse}) {
   path = path || createCFSKeyPath({id})
   drive = drive || drives[path] || await createCFSDrive({path, key, sparse})
-  debug("Creating CFS files for '%s' with key '%s'",
+  debug("Ensuring CFS files for '%s' with key '%s'",
     path, drive.key.toString('hex'))
   for (const file of tree.files) {
-    debug("Creating file '%s'", file)
+    debug("Ensuring file '%s'", file)
     await pify(drive.touch)(file)
   }
 
