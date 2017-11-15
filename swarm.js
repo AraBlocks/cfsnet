@@ -37,11 +37,14 @@ async function createCFSDiscoverySwarm({
     upload, download, maxConnections,
     dns: {
       ttl: dns.ttl || 30,
+      limit: dns.limit || 100,
+      loopback: null != dns.loopback ? dns.loopback : false,
       domain: dns.domain || 'Littlstar.local',
       server: dns.server || 'dns.us-east-1.littlstar.com',
     },
     dht: {
-      ttl: dht.ttl || 3000,
+      maxTables: dht.maxTables || 1000,
+      maxPeers: dht.maxPeers || 100,
       bootstrap: dht.bootstrap || [
         {host: 'dht.us-east-1.littlstar.com', port: 6881},
       ],
