@@ -6,11 +6,11 @@ const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
 const debug = require('debug')('littlstar:cfs:create:drive')
 
-async function createCFSDrive({path, key, sparse = true} = {}) {
+async function createCFSDrive({path, key, sparse = true, sparseMetadata = sparse} = {}) {
   key = normalizeCFSKey(key)
   const drive = hyperdrive(path, key ? key : undefined, {
     sparse: sparse ? true : false,
-    sparseMetadata: false
+    sparseMetadata: sparseMetadata ? true : spare || false,
   })
   drive.setMaxListeners(Infinity)
   // wait for drive to be ready
