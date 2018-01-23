@@ -44,6 +44,7 @@ async function createCFS({
   force = false,
   sparse = true,
   eventStream = true,
+  sparseMetadata = false,
 }) {
   await ensureCFSRootDirectoryAccess()
 
@@ -55,8 +56,13 @@ async function createCFS({
     return drives[path]
   }
 
-  debug("Creating CFS drive from identifier '%s' with key '%s'", id, key)
-  const drive = await createCFSDrive({path, key, sparse})
+  if (id) {
+    debug("Creating CFS drive from identifier '%s' with key '%s'", id, key)
+  } else {
+    debug("Creating CFS drive at path '%s' with key '%s'", path, key)
+  }
+
+  const drive = await createCFSDrive({path, key, sparse, sparseMetadata})
 
   try {
     await pify(access)(path)
@@ -81,12 +87,12 @@ async function createCFS({
     drive.identifier = id
     drive.HOME = `/home/${id}`
   } else {
-    drive.identifier = null
+    drive.identifier = String(await pify(drive.readFile)('/etc/cfs-id'))
     drive.HOME = `/root`
   }
 
   if (!key) {
-    if (null == drives[path]) {
+    if (null == drives[path] && true == eventStream) {
       debug("Initializing CFS event stream")
       await createCFSEventStream({path, drive, enabled: eventStream})
     }
