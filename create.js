@@ -106,7 +106,7 @@ async function createCFS({
     return close(...args)
   }
 
-  if (!key) {
+  if (drive.writable) {
     drive.identifier = id
 
     await initSystem()
