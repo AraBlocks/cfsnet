@@ -6,25 +6,25 @@ const { createCFSDrive } = require('./create-drive')
 const { CFS_ROOT_DIR } = require('./env')
 const { destroyCFS } = require('./destroy')
 const { resolve } = require('path')
-const { access } = require('fs')
 const drives = require('./drives')
 const mkdirp = require('mkdirp')
-const rimraf = require('rimraf')
 const debug = require('debug')('littlstar:cfs:create')
 const tree = require('./tree')
 const pify = require('pify')
 const ms = require('ms')
+const fs = require('fs')
 
 const kLogEventTimeout = ms('10m')
+const kCFSIDFile = '/etc/cfs-id'
 
 /**
  * Politely ensure the root CFS directory has access, otherwise
  * create it.
  */
-async function ensureCFSRootDirectoryAccess() {
+async function ensureCFSRootDirectoryAccess({fs = require('fs')}) {
   debug("Ensuring root CFS directory '%s' has access", CFS_ROOT_DIR)
-  try { await pify(access)(CFS_ROOT_DIR) }
-  catch (err) { void (err, await pify(mkdirp)(CFS_ROOT_DIR)) }
+  try { await pify(fs.access)(CFS_ROOT_DIR) }
+  catch (err) { void (err, await pify(mkdirp)(CFS_ROOT_DIR, {fs})) }
 }
 
 /**
@@ -38,19 +38,23 @@ async function ensureCFSRootDirectoryAccess() {
  * `.key`. An optional "discovery public key" can be given for replication
  */
 async function createCFS({
+  fs = require('fs'),
   id = null,
   key = null,
   path = null,
   force = false,
   sparse = true,
+  storage = null,
+  revision = null,
   eventStream = true,
   sparseMetadata = false,
 }) {
-  await ensureCFSRootDirectoryAccess()
+  await ensureCFSRootDirectoryAccess({fs})
 
   key = normalizeCFSKey(key)
   path = path || createCFSKeyPath({id, key})
 
+  const idFile = '/etc/cfs-id'
 
   if (drives[path]) {
     return drives[path]
@@ -62,16 +66,24 @@ async function createCFS({
     debug("Creating CFS drive at path '%s' with key '%s'", path, key)
   }
 
-  const drive = await createCFSDrive({path, key, sparse, sparseMetadata})
+  // HyperDrive instance
+  const drive = await createCFSDrive({
+    key,
+    path,
+    sparse,
+    storage,
+    revision,
+    sparseMetadata,
+  })
 
   try {
-    await pify(access)(path)
+    await pify(fs.access)(path)
     debug("CFS already exists")
     if (true === force) {
       try {
         debug("Forcing recreation of CFS")
         await destroyCFS({id, path, key})
-        return createCFS({id, path, key})
+        return createCFS(...arguments)
       } catch (err) {
         debug("Failed to recreate CFS with error %s",
           err.message || err.stack || err)
@@ -82,31 +94,27 @@ async function createCFS({
   // this needs to occur so a key can be generated
   debug("Ensuring CFS drive is ready")
   await new Promise((resolve) => drive.ready(resolve))
+  debug("....Ready !")
 
-  if (id) {
-    drive.identifier = id
-    drive.HOME = `/home/${id}`
-  } else {
-    drive.identifier = String(await pify(drive.readFile)('/etc/cfs-id'))
-    drive.HOME = `/root`
+  drive.HOME = null
+  drives[path] = drive
+  const close = drive.close.bind(drive)
+  drive.close = (...args) => {
+    delete drives[path]
+    return close(...args)
   }
 
   if (!key) {
-    if (null == drives[path] && true == eventStream) {
-      debug("Initializing CFS event stream")
-      await createCFSEventStream({path, drive, enabled: eventStream})
+    drive.identifier = id
+
+    await initSystem()
+    await initId()
+    await initHome()
+
+    if ('function' == typeof drive.flushEvents) {
+      debug("Flushing events")
+      await drive.flushEvents()
     }
-
-    debug("Ensuring file system integrity" )
-    await createCFSDirectories({id, path, drive, key, sparse})
-    await createCFSFiles({id, path, drive, key, sparse})
-
-    if (drive.identifier && drive.HOME) {
-      await pify(drive.mkdirp)(drive.HOME)
-    }
-
-    await pify(drive.writeFile)('/etc/cfs-id', Buffer.from(String(id)))
-    await drive.flushEvents()
 
     if (drives[path]) {
       await createCFSEventStream({path, drive, enabled: eventStream})
@@ -114,9 +122,31 @@ async function createCFS({
   }
 
   debug("Caching CFS drive in CFSMAP")
-  drives[path] = drive
 
   return drive
+
+  async function initSystem() {
+    debug("initSystem()")
+    debug("Ensuring file system integrity" )
+    await createCFSDirectories({id, path, drive, key, sparse})
+    await createCFSFiles({id, path, drive, key, sparse})
+  }
+
+  async function initId() {
+    if (id && drive.writable) {
+      try { await pify(drive.stat)(idFile) }
+      catch (err) { await pify(drive.writeFile)(idFile, Buffer.from(id)) }
+    }
+  }
+
+  async function initHome() {
+    if (drive.identifier && drive.writable) {
+      debug("initHome()")
+      drive.HOME = `/home/${drive.identifier}`
+      try { await pify(drive.stat)(drive.HOME) }
+      catch (err) { await pify(drive.mkdirp)(drive.HOME) }
+    }
+  }
 }
 
 /**
@@ -143,7 +173,8 @@ async function createCFSDirectories({id, path, drive, key, sparse}) {
     path, drive.key.toString('hex'))
   for (const dir of tree.directories) {
     debug("Ensuring directory '%s'", dir)
-    await pify(drive.mkdirp)(dir)
+    try { await pify(drive.stat)(dir) }
+    catch (err) { await pify(drive.mkdirp)(dir) }
   }
 }
 
@@ -154,7 +185,8 @@ async function createCFSFiles({id, path, drive, key, sparse}) {
     path, drive.key.toString('hex'))
   for (const file of tree.files) {
     debug("Ensuring file '%s'", file)
-    await pify(drive.touch)(file)
+    try { await pify(drive.stat)(file) }
+    catch (err) { await pify(drive.touch)(file) }
   }
 
   const epochFile = '/etc/cfs-epoch'

@@ -2,6 +2,7 @@
 
 const directories = [
   '/',
+  '/root',
   '/home',
   '/etc',
   '/lib',

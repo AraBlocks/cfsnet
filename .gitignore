@@ -58,3 +58,4 @@ typings/
 .env
 
 cfs/
+package-lock.json

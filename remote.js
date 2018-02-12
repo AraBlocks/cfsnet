@@ -1,8 +1,8 @@
 const { CFSNetworkAgent } = require('./agent')
 const { normalizeCFSKey } = require('./key')
 
-const kCFSKeyHeader = 'X-CFS-KEY'
-const kCFSIDHeader = 'X-CFS-ID'
+const kCFSKeyHeader = 'x-cfs-key'
+const kCFSIDHeader = 'x-cfs-id'
 
 class CFSRemote extends CFSNetworkAgent {
   async create({id, key}) {
@@ -16,7 +16,7 @@ class CFSRemote extends CFSNetworkAgent {
   }
 
   async destroy({id, key}) {
-    return this.post({
+    return this.del({
       uri: '/destroy',
       headers: {
         [kCFSKeyHeader]: normalizeCFSKey(key),
@@ -36,7 +36,7 @@ class CFSRemote extends CFSNetworkAgent {
   }
 
   async status({id, key}) {
-    return this.post({
+    return this.get({
       uri: '/status',
       headers: {
         [kCFSKeyHeader]: normalizeCFSKey(key),
