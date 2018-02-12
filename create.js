@@ -46,6 +46,7 @@ async function createCFS({
   sparse = true,
   storage = null,
   revision = null,
+  secretKey = null,
   eventStream = true,
   sparseMetadata = false,
 }) {
@@ -73,6 +74,7 @@ async function createCFS({
     sparse,
     storage,
     revision,
+    secretKey,
     sparseMetadata,
   })
 

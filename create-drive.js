@@ -12,11 +12,13 @@ async function createCFSDrive({
   sparse = false,
   storage = null,
   revision = null,
+  secretKey = null,
   sparseMetadata = false
 } = {}) {
   key = normalizeCFSKey(key)
 
   const drive = hyperdrive(storage || path, key ? key : undefined, {
+    secretKey,
     sparse: sparse ? true : false,
     version: revision,
     sparseMetadata: sparseMetadata ? true : false,
