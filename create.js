@@ -100,10 +100,15 @@ async function createCFS({
 
   drive.HOME = null
   drives[path] = drive
+
   const close = drive.close.bind(drive)
   drive.close = (...args) => {
     delete drives[path]
     return close(...args)
+  }
+
+  if (id) {
+    drive.HOME = `/home/${id}`
   }
 
   if (drive.writable) {
