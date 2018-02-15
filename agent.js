@@ -1,7 +1,6 @@
 'use strict'
 
-const { parse } = require('url')
-const { join } = require('path')
+const { parse, resolve } = require('url')
 const debug = require('debug')('littlstar:cfs:agent')
 const agent = require('superagent')
 
@@ -83,7 +82,7 @@ class CFSNetworkAgent {
       // as the URL to the request
       let url = uri
       if ('/' == uri[0]) {
-        url = `${this.protocol}//${join(this.host, uri)}`
+        url = resolve(`${this.protocol}//${this.host}`, uri)
       }
 
       // create and configure request based on input
