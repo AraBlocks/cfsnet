@@ -29,6 +29,7 @@ async function createCFSDiscoverySwarm({
   download = true,
   upload = true,
   live = true,
+  port = 0,
   dns = {},
   dht = {}
 } = {}) {
@@ -40,6 +41,7 @@ async function createCFSDiscoverySwarm({
     download,
     upload,
     live,
+    port,
 
     dns: {
       ttl: dns.ttl || 30,
