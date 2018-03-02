@@ -78,28 +78,17 @@ async function createCFS({
     sparseMetadata,
   })
 
-  try {
-    await pify(fs.access)(path)
-    debug("CFS already exists")
-    if (true === force) {
-      try {
-        debug("Forcing recreation of CFS")
-        await destroyCFS({id, path, key})
-        return createCFS(...arguments)
-      } catch (err) {
-        debug("Failed to recreate CFS with error %s",
-          err.message || err.stack || err)
-      }
-    }
-  } catch (err) { void err /** from fs.access() */ }
-
   // this needs to occur so a key can be generated
   debug("Ensuring CFS drive is ready")
   await new Promise((resolve) => drive.ready(resolve))
   debug("....Ready !")
 
   drive.HOME = null
-  drives[path] = drive
+
+  try {
+    await pify(fs.access)(path)
+    drives[path] = drive
+  } catch (err) {  }
 
   const close = drive.close.bind(drive)
   drive.close = (...args) => {
@@ -123,9 +112,7 @@ async function createCFS({
       await drive.flushEvents()
     }
 
-    if (drives[path]) {
-      await createCFSEventStream({path, drive, enabled: eventStream})
-    }
+    await createCFSEventStream({path, drive, enabled: eventStream})
   }
 
   debug("Caching CFS drive in CFSMAP")
