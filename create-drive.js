@@ -10,6 +10,7 @@ async function createCFSDrive({
   key = null,
   path = null,
   sparse = false,
+  latest = true,
   storage = null,
   revision = null,
   secretKey = null,
@@ -20,6 +21,7 @@ async function createCFSDrive({
   const drive = hyperdrive(storage || path, key ? key : undefined, {
     secretKey,
     sparse: sparse ? true : false,
+    latest: latest ? true : false,
     version: revision,
     sparseMetadata: sparseMetadata ? true : false,
   })
