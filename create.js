@@ -48,7 +48,7 @@ async function createCFS({
   storage = null,
   revision = null,
   secretKey = null,
-  eventStream = true,
+  eventStream = false,
   sparseMetadata = false,
 }) {
   await ensureCFSRootDirectoryAccess({fs})
@@ -113,7 +113,9 @@ async function createCFS({
       await drive.flushEvents()
     }
 
-    await createCFSEventStream({path, drive, enabled: eventStream})
+    if (eventStream) {
+      await createCFSEventStream({path, drive, enabled: eventStream})
+    }
   }
 
   debug("Caching CFS drive in CFSMAP")
