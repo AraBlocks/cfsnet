@@ -201,7 +201,7 @@ async function createCFSEventStream({drive, enabled = true}) {
   const timestamp = () => Math.floor(Date.now()/1000) // unix timestamp (seconds)
   let eventCount = 0
   let timeout = 0
-  let logIndex = logs.length
+  let logIndex = 0
   let logsSeen = 0
   let logs = null
   try {
@@ -212,7 +212,10 @@ async function createCFSEventStream({drive, enabled = true}) {
     })
   } catch (err) {
     logs = []
+  } finally {
+    logIndex = logs.length
   }
+
   if (enabled) {
     timeout = setTimeout(flushEvents, kLogEventTimeout)
     setTimeout(flushEvents, 0)
