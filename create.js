@@ -43,6 +43,7 @@ async function createCFS({
   key = null,
   path = null,
   force = false,
+  latest = true,
   sparse = true,
   storage = null,
   revision = null,
@@ -198,11 +199,20 @@ async function createCFSEventStream({drive, enabled = true}) {
   await pify(drive.ready)()
   await pify(drive.touch)(log)
   const timestamp = () => Math.floor(Date.now()/1000) // unix timestamp (seconds)
-  const logs = String(await pify(drive.readFile)(log)).split('\n')
   let eventCount = 0
   let timeout = 0
   let logIndex = logs.length
   let logsSeen = 0
+  let logs = null
+  try {
+    await new Promise(async (resolve, reject) => {
+      setTimeout(reject, 250)
+      await pify(drive.access)(log)
+      logs = String(await pify(drive.readFile)(log)).split('\n')
+    })
+  } catch (err) {
+    logs = []
+  }
   if (enabled) {
     timeout = setTimeout(flushEvents, kLogEventTimeout)
     setTimeout(flushEvents, 0)
