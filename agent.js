@@ -85,8 +85,6 @@ class CFSNetworkAgent {
         url = resolveURL(`${this.protocol}//${this.host}`, uri)
       }
 
-      console.log(url);
-
       // create and configure request based on input
       debug("Creating %s request to %s", method.toUpperCase(), url)
       const request = agent[method](url)
