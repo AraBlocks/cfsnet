@@ -47,7 +47,7 @@ async function createCFSDiscoverySwarm({
       ttl: dns.ttl || 30,
       limit: dns.limit || 100,
       loopback: null != dns.loopback ? dns.loopback : false,
-      domain: dns.domain || 'Littlstar.local',
+      domain: dns.domain || 'cfs.local',
       server: dns.server || 'dns.us-east-1.littlstar.com',
     },
 
