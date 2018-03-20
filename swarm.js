@@ -55,7 +55,11 @@ async function createCFSDiscoverySwarm({
       maxTables: dht.maxTables || 10000,
       maxPeers: dht.maxPeers || 1000,
       bootstrap: dht.bootstrap || [
+        {host: '127.0.0.1', port: 6881},
         {host: 'dht.us-east-1.littlstar.com', port: 6881},
+        {host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881},
+        {host: 'cfa-beta.us-east-1.littlstar.com', port: 6881},
+        {host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881},
       ],
     }
   })
