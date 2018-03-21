@@ -48,7 +48,12 @@ async function createCFSDiscoverySwarm({
       limit: dns.limit || 100,
       loopback: null != dns.loopback ? dns.loopback : false,
       domain: dns.domain || 'cfs.local',
-      server: dns.server || 'dns.us-east-1.littlstar.com',
+      server: dns.server || [
+        'dns.us-east-1.littlstar.com',
+        'cfa-alpha.us-east-1.littlstar.com',
+        'cfa-beta.us-east-1.littlstar.com',
+        'cfa-gamma.us-east-1.littlstar.com',
+      ],
     },
 
     dht: {
