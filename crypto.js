@@ -1,11 +1,15 @@
 'use strict'
 
-const { keyPair } = require('hypercore/lib/crypto')
+const { keyPair, discoveryKey } = require('hypercore/lib/crypto')
 const randombytes = require('randombytes')
 const Hash = require('hash.js')
 
 function generateRandomKeyPair() {
   return generateKeyPair(randombytes(32))
+}
+
+function generateDiscoveryKey(x) {
+  return discoveryKey(x)
 }
 
 function generateKeyPair(x) {
@@ -22,6 +26,7 @@ function hash(x) {
 
 module.exports = {
   generateRandomKeyPair,
+  generateDiscoveryKey,
   generateKeyPair,
   sha256,
   hash,

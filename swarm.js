@@ -3,12 +3,16 @@
 const { createCFSSignalHub } = require('./signalhub')
 const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
+const createWebRTCSwarm = require('webrtc-swarm')
 const { createSHA256 } = require('./sha256')
 const { createCFS } = require('./create')
 const isBrowser = require('is-browser')
 const discovery = require('discovery-swarm')
 const drives = require('./drives')
+const WebRTC = require('wrtc')
+const crypto = require('./crypto')
 const debug = require('debug')('littlstar:cfs:swarm')
+const pump = require('pump')
 
 /**
  * Creates a CFS discovery network swarm
@@ -43,9 +47,11 @@ async function createCFSDiscoverySwarm({
   key = key ? normalizeCFSKey(key) : cfs ? cfs.key.toString('hex') : null
   cfs = cfs || await createCFS({id, key})
 
+  const discoveryKey = cfs.discoveryKey || crypto.discoveryKey(Buffer.from(cfs.key || key))
+
   if (false == isBrowser) {
     swarm = discovery({
-      maxConnections, stream, id, hash: false,
+      maxConnections, stream, hash: false,
 
       dns: {
         ttl: dns.ttl || 30,
@@ -75,17 +81,18 @@ async function createCFSDiscoverySwarm({
       }
     })
 
-    const swarmKey = cfs.discoveryKey
     // @TODO(werle): use swarm key below prior to 1.0.0 release
-    //const swarmKey = id && key ? createSHA256({id, key}) : cfs.discoveryKey
+    //const discoveryKey = id && key ? createSHA256({id, key}) : cfs.discoveryKey
     swarm.once('error', onerror)
     swarm.listen(port || 0, onlisten)
-    swarm.join(swarmKey)
+    swarm.join(discoveryKey)
     swarm.setMaxListeners(Infinity)
+
     function onlisten(err) {
       if (err) { onerror(err) }
       else { swarm.removeListener('error', onerror) }
     }
+
     function onerror(err) {
       debug("onerror:", err)
       swarm.listen(0)
@@ -93,14 +100,37 @@ async function createCFSDiscoverySwarm({
   }
 
   if (false !== wrtc) {
+      const hub = await createCFSSignalHub({discoveryKey: cfs.key})
+      const wrtcSwarm = createWebRTCSwarm(hub, {
+        //config: { iceServers: [{urls:`stun:localhost:19302`}] },
+        wrtc: WebRTC,
+      })
+
     if (null == swarm) {
-      const hub = await createCFSSignalHub
+      swarm = wrtcSwarm
+    } else {
+      swarm.on('close', () => { wrtcSwarm.close() })
+      wrtcSwarm.on('error', (err) => {
+        swarm.emit('error', err)
+      })
+      wrtcSwarm.on('peer', (peer, info) => {
+        swarm.emit('connection', peer, info)
+        const replicate = stream()
+        pump(peer, replicate, peer)
+          .on('error', (err) => { swarm.emit('error', err) })
+      })
     }
   }
 
   return swarm
   function stream() {
-    return cfs.replicate({ download, upload, live })
+    return cfs.replicate({
+      download,
+      upload,
+      live,
+    }).on('error', (err) => {
+      swarm.emit('error', err)
+    })
   }
 }
 

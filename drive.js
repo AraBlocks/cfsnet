@@ -10,7 +10,7 @@ async function createCFSDrive({
   key = null,
   path = null,
   sparse = false,
-  latest = true,
+  latest = false,
   storage = null,
   revision = null,
   secretKey = null,

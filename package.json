@@ -21,13 +21,16 @@
     "mkdirp": "^0.5.1",
     "ms": "^2.1.1",
     "pify": "^3.0.0",
+    "pump": "^3.0.0",
     "random-access-s3": "^1.0.0",
     "randombytes": "^2.0.6",
     "rimraf": "^2.6.2",
     "s3-readable-stream": "0.0.6",
     "signalhub": "^4.9.0",
     "superagent": "^3.8.2",
-    "through": "^2.3.8"
+    "through": "^2.3.8",
+    "webrtc-swarm": "^2.9.0",
+    "wrtc": "0.0.67"
   },
   "devDependencies": {}
 }

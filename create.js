@@ -87,11 +87,7 @@ async function createCFS({
   debug("....Ready !")
 
   drive.HOME = null
-
-  try {
-    await pify(fs.access)(path)
-    drives[path] = drive
-  } catch (err) {  }
+  drives[path] = drive
 
   const close = drive.close.bind(drive)
   drive.close = (...args) => {
@@ -101,11 +97,10 @@ async function createCFS({
 
   if (id) {
     drive.HOME = `/home/${id}`
+    drive.identifier = id
   }
 
   if (drive.writable) {
-    drive.identifier = id
-
     await initSystem()
     await initId()
     await initHome()
