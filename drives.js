@@ -1,6 +1,6 @@
 'use strict'
 
-const { createCFSKeyPath } = require('./create-key-path')
+const { createCFSKeyPath } = require('./key-path')
 const debug = require('debug')('littlstar:cfs:drive:map')
 
 Object.assign(exports, new class {

@@ -1,9 +1,12 @@
 'use strict'
 
-const { createCFSKeyPath } = require('./create-key-path')
+const { createCFSSignalHub } = require('./signalhub')
+const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
+const { createSHA256 } = require('./sha256')
 const { createCFS } = require('./create')
-const discovery = require('hyperdiscovery')
+const isBrowser = require('is-browser')
+const discovery = require('discovery-swarm')
 const drives = require('./drives')
 const debug = require('debug')('littlstar:cfs:swarm')
 
@@ -26,51 +29,70 @@ async function createCFSDiscoverySwarm({
   key = null,
   id = null,
   maxConnections = 60,
+  signalhub = null,
   download = true,
   upload = true,
   live = true,
+  wrtc = null,
   port = 0,
   dns = {},
   dht = {}
 } = {}) {
+  let swarm = null
   id = id ? id : cfs ? cfs.identifier : null
   key = key ? normalizeCFSKey(key) : cfs ? cfs.key.toString('hex') : null
   cfs = cfs || await createCFS({id, key})
-  const swarm = discovery(cfs, {
-    maxConnections,
-    download,
-    upload,
-    live,
-    port,
+  if (false == isBrowser) {
+    swarm = discovery(cfs, {
+      maxConnections, id, hash: false,
 
-    dns: {
-      ttl: dns.ttl || 30,
-      limit: dns.limit || 100,
-      loopback: null != dns.loopback ? dns.loopback : false,
-      domain: dns.domain || 'cfs.local',
-      server: dns.server || [
-        'dns.us-east-1.littlstar.com',
-        'cfa-alpha.us-east-1.littlstar.com',
-        'cfa-beta.us-east-1.littlstar.com',
-        'cfa-gamma.us-east-1.littlstar.com',
-      ],
-    },
+      dns: {
+        ttl: dns.ttl || 30,
+        limit: dns.limit || 100,
+        loopback: null != dns.loopback ? dns.loopback : false,
+        multicast: null != dns.multicast ? dns.multicast : true,
+        domain: dns.domain || 'cfs.local',
+        server: dns.server || [
+          'dns.us-east-1.littlstar.com',
+          'cfa-alpha.us-east-1.littlstar.com',
+          'cfa-beta.us-east-1.littlstar.com',
+          'cfa-gamma.us-east-1.littlstar.com',
+        ],
+      },
 
-    dht: {
-      maxTables: dht.maxTables || 10000,
-      maxPeers: dht.maxPeers || 1000,
-      bootstrap: dht.bootstrap || [
-        {host: '127.0.0.1', port: 6881},
-        {host: 'dht.us-east-1.littlstar.com', port: 6881},
-        {host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881},
-        {host: 'cfa-beta.us-east-1.littlstar.com', port: 6881},
-        {host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881},
-      ],
+      dht: {
+        maxTables: dht.maxTables || 10000,
+        maxPeers: dht.maxPeers || 1000,
+        bootstrap: dht.bootstrap || [
+          {host: '127.0.0.1', port: 6881},
+          {host: 'dht.us-east-1.littlstar.com', port: 6881},
+          {host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881},
+          {host: 'cfa-beta.us-east-1.littlstar.com', port: 6881},
+          {host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881},
+        ],
+      }
+    })
+
+    const swarmKey = cfs.discoveryKey
+    // @TODO(werle): use swarm key below prior to 1.0.0 release
+    //const swarmKey = id && key ? createSHA256({id, key}) : cfs.discoveryKey
+    swarm.setMaxListeners(Infinity)
+    swarm.once('error', () => swarm.listen(0))
+    swarm.listen(port || 0)
+
+    swarm.join(swarmKey)
+  }
+
+  if (false !== wrtc) {
+    if (null == swarm) {
+      const hub = await createCFSSignalHub
     }
-  })
+  }
 
-  swarm.setMaxListeners(Infinity)
   return swarm
+  function stream() {
+    return cfs.replicate({ download, upload, live })
+  }
 }
 
 module.exports = {

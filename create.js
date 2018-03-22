@@ -1,11 +1,12 @@
 'use strict'
 
-const { createCFSKeyPath } = require('./create-key-path')
+const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
-const { createCFSDrive } = require('./create-drive')
+const { createCFSDrive } = require('./drive')
 const { CFS_ROOT_DIR } = require('./env')
 const { destroyCFS } = require('./destroy')
 const { resolve } = require('path')
+const isBrowser = require('is-browser')
 const drives = require('./drives')
 const mkdirp = require('mkdirp')
 const debug = require('debug')('littlstar:cfs:create')
@@ -51,7 +52,10 @@ async function createCFS({
   eventStream = false,
   sparseMetadata = false,
 }) {
-  await ensureCFSRootDirectoryAccess({fs})
+
+  if ('string' == typeof storage && false == isBrowser) {
+    await ensureCFSRootDirectoryAccess({fs})
+  }
 
   key = normalizeCFSKey(key)
   path = path || createCFSKeyPath({id, key})

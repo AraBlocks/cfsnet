@@ -1,7 +1,7 @@
 'use strict'
 
 const { normalizeCFSKey } = require('./key')
-const { createCFSKeyPath } = require('./create-key-path')
+const { createCFSKeyPath } = require('./key-path')
 const { CFS_ROOT_DIR } = require('./env')
 const { resolve } = require('path')
 const drives = require('./drives')
