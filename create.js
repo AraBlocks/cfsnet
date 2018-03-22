@@ -32,8 +32,7 @@ async function ensureCFSRootDirectoryAccess({fs = require('fs')}) {
  * This function will create a CFS based on some input identifier if it does
  * not already exist. An `.id` is required as it is used to generate a SHA256
  * hash string with a hex encoding that will be used to create the
- * CFS storage ID. If `.force` is set to true, then the CFS will be
- * created regardless destroying an existing one in the process.
+ * CFS storage ID.
  *
  * The "public key" is exposed on the HyperDrive instance as the property
  * `.key`. An optional "discovery public key" can be given for replication
@@ -43,9 +42,8 @@ async function createCFS({
   id = null,
   key = null,
   path = null,
-  force = false,
   latest = true,
-  sparse = true,
+  sparse = false,
   storage = null,
   revision = null,
   secretKey = null,

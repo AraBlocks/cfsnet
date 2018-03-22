@@ -42,17 +42,19 @@ async function createCFSDiscoverySwarm({
   id = id ? id : cfs ? cfs.identifier : null
   key = key ? normalizeCFSKey(key) : cfs ? cfs.key.toString('hex') : null
   cfs = cfs || await createCFS({id, key})
+
   if (false == isBrowser) {
-    swarm = discovery(cfs, {
-      maxConnections, id, hash: false,
+    swarm = discovery({
+      maxConnections, stream, id, hash: false,
 
       dns: {
         ttl: dns.ttl || 30,
-        limit: dns.limit || 100,
+        limit: dns.limit || 1000,
         loopback: null != dns.loopback ? dns.loopback : false,
         multicast: null != dns.multicast ? dns.multicast : true,
         domain: dns.domain || 'cfs.local',
         server: dns.server || [
+          '127.0.0.1',
           'cfa-alpha.us-east-1.littlstar.com',
           'cfa-beta.us-east-1.littlstar.com',
           'cfa-gamma.us-east-1.littlstar.com',
@@ -61,14 +63,14 @@ async function createCFSDiscoverySwarm({
       },
 
       dht: {
-        maxTables: dht.maxTables || 10000,
         maxPeers: dht.maxPeers || 10000,
+        maxTables: dht.maxTables || 10000,
         bootstrap: dht.bootstrap || [
+          {host: '127.0.0.1', port: 6881},
+          {host: 'dht.us-east-1.littlstar.com', port: 6881},
           {host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881},
           {host: 'cfa-beta.us-east-1.littlstar.com', port: 6881},
           {host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881},
-          {host: 'dht.us-east-1.littlstar.com', port: 6881},
-          {host: '127.0.0.1', port: 6881},
         ],
       }
     })
@@ -80,8 +82,14 @@ async function createCFSDiscoverySwarm({
     swarm.listen(port || 0, onlisten)
     swarm.join(swarmKey)
     swarm.setMaxListeners(Infinity)
-    function onlisten() { swarm.removeListener('error', onerror) }
-    function onerror() { swarm.listen(0) }
+    function onlisten(err) {
+      if (err) { onerror(err) }
+      else { swarm.removeListener('error', onerror) }
+    }
+    function onerror(err) {
+      debug("onerror:", err)
+      swarm.listen(0)
+    }
   }
 
   if (false !== wrtc) {
