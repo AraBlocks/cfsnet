@@ -37,7 +37,7 @@ class CFSRemote extends CFSNetworkAgent {
 
   async status({id, key}) {
     return this.get({
-      uri: '/status',
+      uri: '/~/status',
       headers: {
         [kCFSKeyHeader]: normalizeCFSKey(key),
         [kCFSIDHeader]: id,
