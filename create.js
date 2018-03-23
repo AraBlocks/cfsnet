@@ -104,8 +104,8 @@ async function createCFS({
     await initSystem()
     await initId()
     await initHome()
-
     if ('function' == typeof drive.flushEvents) {
+
       debug("Flushing events")
       await drive.flushEvents()
     }
@@ -183,12 +183,16 @@ async function createCFSFiles({id, path, drive, key, sparse}) {
     catch (err) { await pify(drive.touch)(file) }
   }
 
-  const epochFile = '/etc/cfs-epoch'
-  const epoch = await pify(drive.readFile)(epochFile, 'utf8')
-  if (!epoch || !epoch.length) {
-    const timestamp = String((Date.now()/1000)|0)
-    debug("Writing CFS epoch '%s' to %s", timestamp, epochFile)
-    await pify(drive.writeFile)(epochFile, Buffer.from(timestamp))
+  try {
+    const epochFile = '/etc/cfs-epoch'
+    const epoch = await pify(drive.readFile)(epochFile, 'utf8')
+    if (!epoch || !epoch.length) {
+      const timestamp = String((Date.now()/1000)|0)
+      debug("Writing CFS epoch '%s' to %s", timestamp, epochFile)
+      await pify(drive.writeFile)(epochFile, Buffer.from(timestamp))
+    }
+  } catch (err) {
+    debug("Failed to create `/etc/cfs-epoch' file", err)
   }
 }
 

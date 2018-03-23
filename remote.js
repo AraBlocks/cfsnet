@@ -1,6 +1,7 @@
 const { CFSNetworkAgent } = require('./agent')
 const { normalizeCFSKey } = require('./key')
 
+const kCFSRevisionHeader = 'x-cfs-revision'
 const kCFSKeyHeader = 'x-cfs-key'
 const kCFSIDHeader = 'x-cfs-id'
 
@@ -25,10 +26,11 @@ class CFSRemote extends CFSNetworkAgent {
     })
   }
 
-  async sync({id, key}) {
+  async sync({id, key, revision}) {
     return this.post({
       uri: '/~/sync',
       headers: {
+        [kCFSRevisionHeader]: revision || '',
         [kCFSKeyHeader]: normalizeCFSKey(key),
         [kCFSIDHeader]: id,
       }
