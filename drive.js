@@ -9,8 +9,8 @@ const debug = require('debug')('littlstar:cfs:create:drive')
 async function createCFSDrive({
   key = null,
   path = null,
-  sparse = false,
-  latest = false,
+  sparse = true,
+  latest = true,
   storage = null,
   revision = null,
   secretKey = null,
