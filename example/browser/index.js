@@ -19,7 +19,9 @@ void async function main() {
 
   const URL = window.URL || window.webkitURL
   const cfs = await createCFS({storage: ram, key, id})
-  const swarm = await createCFSDiscoverySwarm({id, key, cfs})
+  const swarm = await createCFSDiscoverySwarm({
+    id, key, cfs
+  })
   const video = html`
     <video controls autoplay preload
       style="width: 100%; display: block; height: 100%; position: absolute; top: 0; left: 0;"

@@ -11,6 +11,8 @@ const discovery = require('discovery-swarm')
 const drives = require('./drives')
 const crypto = require('./crypto')
 const debug = require('debug')('littlstar:cfs:swarm')
+const ipify = require('ipify')
+const pify = require('pify')
 const pump = require('pump')
 const cuid = require('cuid')
 const ip = require('ip')
@@ -46,7 +48,7 @@ async function createCFSDiscoverySwarm({
   port = 0,
   dns = {},
   dht = {},
-  ws = { port: 0 },
+  ws = { bootstrap: null, port: 0 },
 } = {}) {
   id = id ? id : cfs ? cfs.identifier : null
   key = key ? normalizeCFSKey(key) : cfs ? cfs.key.toString('hex') : null
@@ -112,12 +114,14 @@ async function createCFSDiscoverySwarm({
     if (false == isBrowser) {
       const wss = await createCFSWebSocketServer(ws)
       swarm.on('close', () => wss.close())
-      hub.subscribe(ping).on('data', (req) => {
+      hub.subscribe(ping).on('data', async (req) => {
         debug("ping:", req)
         try {
           const address = ip.address()
           const { port } = wss._server.address()
-          const res = {address, port, id: uid}
+          const localAddress = address
+          const remoteAddress = await ipify()
+          const res = { remoteAddress, localAddress, address, port, id: uid }
           hub.broadcast(ack, res)
         } catch (err) {
           debug("ping: error:", err)
@@ -142,17 +146,74 @@ async function createCFSDiscoverySwarm({
     }
 
     if (isBrowser) {
-      const interval = setInterval(pong, 1000)
       const channel = hub.subscribe(ack).on('data', onack)
+      const connetions = []
+      let interval = 0
+
+      heartbeat()
+
+      function heartbeat() {
+        clearInterval(interval)
+        interval = setInterval(pingpong, 1000)
+      }
+
+      if (ws && ws.bootstrap) {
+        ws = Array.isArray(ws.bootstrap) ? ws.bootstrap : [ws.bootstrap]
+        for (const bootstrap of ws.bootstrap) {
+          await connect(bootstrap)
+        }
+      }
 
       async function onack(res) {
         if (uid != res.id) {
+          debug("onack")
           clearInterval(interval)
           channel.removeListener('data', onack)
-          const socket = await createCFSWebSocket({host: `ws://${res.address}:${res.port}`})
+          connect(res)
+        }
+      }
+
+      async function connect(info) {
+        if (maxConnections && connetions.length >= maxConnections) {
+          return
+        }
+
+        if (info && info.port) {
+          if (info.remoteAddress) {
+            let host = `ws://${info.remoteAddress}:${info.port}`
+            try { return await pify(tryConnect)(host) }
+            catch (err) { debug("connect: error:", err) }
+          }
+
+          if (info.localAddress) {
+            let host = `ws://${info.localAddress}:${info.port}`
+            try { return await pify(tryConnect)(host) }
+            catch (err) { debug("connect: error:", err) }
+          }
+
+          if (info.address) {
+            let host = `ws://${info.address}:${info.port}`
+            try { return await pify(tryConnect)(host) }
+            catch (err) { debug("connect: error:", err) }
+          }
+        }
+
+        async function tryConnect(host, cb) {
+          const socket = await createCFSWebSocket({host})
+          socket.once('error', cb)
+          socket.once('connect', () => cb(null))
+
+          socket.on('close', () => {
+            connetions.splice(connetions.indexOf(socket), 1)
+            if (0 == connetions.length) {
+              heartbeat()
+            }
+          })
+
           socket.on('connect', () => {
-            swarm.emit('connection', socket, res)
-            debug("onack: sock: connect")
+            connetions.push(socket)
+            swarm.emit('connection', socket, info)
+            debug("socket: connect")
             socket.pipe(stream()).pipe(socket)
           })
         }
@@ -165,8 +226,8 @@ async function createCFSDiscoverySwarm({
 
   return swarm
 
-  function pong() {
-    debug("ping")
+  function pingpong() {
+    debug("ping <> pong", uid)
     hub.broadcast(ping, {id: uid})
   }
 

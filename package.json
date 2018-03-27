@@ -19,6 +19,7 @@
     "hyperdiscovery": "^7.0.0",
     "hyperdrive": "^9.12.3",
     "ip": "^1.1.5",
+    "ipify": "^2.0.0",
     "is-browser": "^2.0.1",
     "mkdirp": "^0.5.1",
     "ms": "^2.1.1",
