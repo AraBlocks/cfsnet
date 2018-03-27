@@ -90,9 +90,17 @@ async function createCFS({
   drives[path] = drive
 
   const close = drive.close.bind(drive)
+
   drive.close = (...args) => {
     delete drives[path]
     return close(...args)
+  }
+
+  drive.update = (...args) => {
+    if (drive.metadata) {
+      drive.metadata.update(...args)
+    }
+    return drive
   }
 
   if (id) {
