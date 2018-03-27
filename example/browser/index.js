@@ -12,7 +12,7 @@ const qs = require('querystring')
 
 void async function main() {
   const {
-    file = 'video.mp4',
+    file = null,
     key = null,
     id = 'werle/werle',
   } = qs.parse(window.location.search.slice(1))
@@ -32,16 +32,19 @@ void async function main() {
 
   document.body.appendChild(video)
 
-  console.log(id, cfs.key.toString('hex'));
+  debug(id, cfs.key.toString('hex'));
 
   window.video = video
   window.swarm = swarm
   window.cfs = cfs
 
   function onupdate() {
-    console.log('onupdate');
-    const stream = new VideoStream({createReadStream}, video)
-    window.stream = stream
+    debug('onupdate');
+    if (file) {
+      debug('onstream')
+      const stream = new VideoStream({createReadStream}, video)
+      window.stream = stream
+    }
   }
 
   function createReadStream(range) {

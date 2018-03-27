@@ -115,6 +115,7 @@ async function createCFSDiscoverySwarm({
       const wss = await createCFSWebSocketServer(ws)
       swarm.on('close', () => wss.close())
       hub.subscribe(ping).on('data', async (req) => {
+        debug("me:", {id: uid})
         debug("ping:", req)
         try {
           const address = ip.address()
@@ -145,87 +146,85 @@ async function createCFSDiscoverySwarm({
       })
     }
 
-    if (isBrowser) {
-      const channel = hub.subscribe(ack).on('data', onack)
-      const connetions = []
-      let interval = 0
-      let i = 0
+    const channel = hub.subscribe(ack).on('data', onack)
+    const connetions = []
+    let interval = 0
+    let i = 0
 
-      heartbeat()
+    heartbeat()
 
-      function heartbeat() {
-        const { abs, cos, sin, floor } = Math
-        const t = Date.now()
-        const x = 5000 // in ms
-        const y = 0.5 // scale
-        const wait = floor((x+y*x - abs(y*x*cos(y*t)) + x*sin(y*1-t)) / i)
-        debug("heartbeat: wait=%s", wait)
-        pingpong() // init ping
+    function heartbeat() {
+      const { abs, cos, sin, floor } = Math
+      const t = Date.now()
+      const x = 5000 // in ms
+      const y = 0.5 // scale
+      const wait = Math.max(y*x, floor((x+y*x - abs(y*x*cos(y*t)) + x*sin(y*1-t)) / ++i))
+      debug("heartbeat: wait=%s", wait)
+      pingpong() // init ping
+      clearInterval(interval)
+      interval = setInterval(pingpong, wait)
+    }
+
+    if (ws && ws.bootstrap) {
+      ws = Array.isArray(ws.bootstrap) ? ws.bootstrap : [ws.bootstrap]
+      for (const bootstrap of ws.bootstrap) {
+        await connect(bootstrap)
+      }
+    }
+
+    async function onack(res) {
+      if (uid != res.id) {
+        debug("onack")
+        i = 0
         clearInterval(interval)
-        interval = setInterval(pingpong, wait)
+        channel.removeListener('data', onack)
+        connect(res)
+      }
+    }
+
+    async function connect(info) {
+      if (maxConnections && connetions.length >= maxConnections) {
+        return
       }
 
-      if (ws && ws.bootstrap) {
-        ws = Array.isArray(ws.bootstrap) ? ws.bootstrap : [ws.bootstrap]
-        for (const bootstrap of ws.bootstrap) {
-          await connect(bootstrap)
+      if (info && info.port) {
+        if (info.remoteAddress) {
+          let host = `ws://${info.remoteAddress}:${info.port}`
+          try { return await pify(tryConnect)(host) }
+          catch (err) { debug("connect: error:", err) }
+        }
+
+        if (info.localAddress) {
+          let host = `ws://${info.localAddress}:${info.port}`
+          try { return await pify(tryConnect)(host) }
+          catch (err) { debug("connect: error:", err) }
+        }
+
+        if (info.address) {
+          let host = `ws://${info.address}:${info.port}`
+          try { return await pify(tryConnect)(host) }
+          catch (err) { debug("connect: error:", err) }
         }
       }
 
-      async function onack(res) {
-        if (uid != res.id) {
-          debug("onack")
-          i = 0
-          clearInterval(interval)
-          channel.removeListener('data', onack)
-          connect(res)
-        }
-      }
+      async function tryConnect(host, cb) {
+        const socket = await createCFSWebSocket({host})
+        socket.once('error', cb)
+        socket.once('connect', () => cb(null))
 
-      async function connect(info) {
-        if (maxConnections && connetions.length >= maxConnections) {
-          return
-        }
-
-        if (info && info.port) {
-          if (info.remoteAddress) {
-            let host = `ws://${info.remoteAddress}:${info.port}`
-            try { return await pify(tryConnect)(host) }
-            catch (err) { debug("connect: error:", err) }
+        socket.on('close', () => {
+          connetions.splice(connetions.indexOf(socket), 1)
+          if (0 == connetions.length) {
+            heartbeat()
           }
+        })
 
-          if (info.localAddress) {
-            let host = `ws://${info.localAddress}:${info.port}`
-            try { return await pify(tryConnect)(host) }
-            catch (err) { debug("connect: error:", err) }
-          }
-
-          if (info.address) {
-            let host = `ws://${info.address}:${info.port}`
-            try { return await pify(tryConnect)(host) }
-            catch (err) { debug("connect: error:", err) }
-          }
-        }
-
-        async function tryConnect(host, cb) {
-          const socket = await createCFSWebSocket({host})
-          socket.once('error', cb)
-          socket.once('connect', () => cb(null))
-
-          socket.on('close', () => {
-            connetions.splice(connetions.indexOf(socket), 1)
-            if (0 == connetions.length) {
-              heartbeat()
-            }
-          })
-
-          socket.on('connect', () => {
-            connetions.push(socket)
-            swarm.emit('connection', socket, info)
-            debug("socket: connect")
-            socket.pipe(stream()).pipe(socket)
-          })
-        }
+        socket.on('connect', () => {
+          connetions.push(socket)
+          swarm.emit('connection', socket, info)
+          debug("socket: connect")
+          socket.pipe(stream()).pipe(socket)
+        })
       }
     }
   }
