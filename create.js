@@ -103,37 +103,25 @@ async function createCFS({
     return drive
   }
 
+  drive.HOME = null
+  drive.CFSID = null
+
   if (id) {
-    drive.HOME = `/home/${id}`
     drive.identifier = Buffer.from(id)
+    process.nextTick(() => onidentifier(drive.identifier))
   } else {
     await onupdate()
   }
 
+  drive.ready(onready)
   drive.on('update', onupdate)
   drive.on('content', onupdate)
 
-  async function onupdate() {
-    debug("onupdate")
-    try {
-      await pify(drive.access)(kCFSIDFile)
-      if (null == drive.identifier) {
-        drive.identifier = await pify(drive.readFile)(kCFSIDFile)
-      }
-      drive.emit('id', drive.identifier)
-      drive.emit('identifier', drive.identifier)
-      drive.removeListener('update', onupdate)
-      drive.removeListener('content', onupdate)
-    } catch (err) {
-      debug("onupdate: error:", err)
-    }
-  }
+  await initId()
+  await initHome()
+  await initSystem()
 
   if (drive.writable) {
-    await initSystem()
-    await initId()
-    await initHome()
-
     if ('function' == typeof drive.flushEvents) {
       debug("Flushing events")
       await drive.flushEvents()
@@ -148,17 +136,45 @@ async function createCFS({
 
   return drive
 
+  async function onready() {
+    debug("onready")
+  }
+
+  async function onidentifier(identifier) {
+    debug("onidentifier:", identifier)
+    drive.emit('id', drive.identifier)
+    drive.emit('identifier', drive.identifier)
+  }
+
+  async function onupdate() {
+    debug("onupdate")
+    try {
+      await pify(drive.access)(kCFSIDFile)
+      if (null == drive.identifier) {
+        drive.identifier = await pify(drive.readFile)(kCFSIDFile)
+      }
+      onidentifier(drive.identifier)
+    } catch (err) {
+      debug("onupdate: error:", err)
+    }
+  }
+
   async function initSystem() {
     debug("init: system")
     debug("Ensuring file system integrity" )
-    await createCFSDirectories({id, path, drive, key, sparse})
-    await createCFSFiles({id, path, drive, key, sparse})
+    if (drive.writable) {
+      await createCFSDirectories({id, path, drive, key, sparse})
+      await createCFSFiles({id, path, drive, key, sparse})
+    }
   }
 
   async function initId() {
     debug("init: id")
+    drive.CFSID = kCFSIDFile
     if (id && drive.writable) {
-      await pify(drive.writeFile)(kCFSIDFile, id)
+      await pify(drive.writeFile)(kCFSIDFile, Buffer.from(id))
+    } else {
+      await onupdate()
     }
   }
 

@@ -18,6 +18,7 @@ void async function main() {
     id = 'werle/werle',
   } = qs.parse(window.location.search.slice(1))
 
+  console.log("file=%s key=%s id=%s", file, key, id);
   const URL = window.URL || window.webkitURL
   const cfs = await createCFS({storage: ram, key, id})
   const swarm = await createCFSDiscoverySwarm({

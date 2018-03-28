@@ -58,6 +58,7 @@ async function createCFSDiscoverySwarm({
   cfs = cfs || await createCFS({id, key})
 
   if (!id) {
+    debug("swarm: Waiting for identifier", cfs.identifier)
     id = await new Promise((resolve) => cfs.once('id', resolve))
   }
 
