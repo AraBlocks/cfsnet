@@ -6,6 +6,7 @@ const VideoStream = require('videostream')
 const shaka = require('shaka-player')
 const debug = require('debug')('littlstar:cfs:example')
 const morph = require('nanomorph')
+const wrtc = require('wrtc')
 const html = require('nanohtml')
 const ram = require('random-access-memory')
 const qs = require('querystring')
@@ -20,7 +21,7 @@ void async function main() {
   const URL = window.URL || window.webkitURL
   const cfs = await createCFS({storage: ram, key, id})
   const swarm = await createCFSDiscoverySwarm({
-    id, key, cfs
+    id, key, cfs, wrtc
   })
   const video = html`
     <video controls autoplay preload

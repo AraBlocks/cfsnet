@@ -6,29 +6,10 @@ const kCFSKeyHeader = 'x-cfs-key'
 const kCFSIDHeader = 'x-cfs-id'
 
 class CFSRemote extends CFSNetworkAgent {
-  async create({id, key}) {
-    return this.post({
-      uri: '/~/create',
-      headers: {
-        [kCFSKeyHeader]: normalizeCFSKey(key),
-        [kCFSIDHeader]: id,
-      }
-    })
-  }
-
-  async destroy({id, key}) {
-    return this.del({
-      uri: '/~/destroy',
-      headers: {
-        [kCFSKeyHeader]: normalizeCFSKey(key),
-        [kCFSIDHeader]: id,
-      }
-    })
-  }
-
-  async sync({id, key, revision}) {
-    return this.post({
-      uri: '/~/sync',
+  async read(filename, {id, key, revision}) {
+    if ('/' != filename[0]) { filename = '/'+filename }
+    return this.get({
+      uri: filename,
       headers: {
         [kCFSRevisionHeader]: revision || '',
         [kCFSKeyHeader]: normalizeCFSKey(key),
@@ -37,14 +18,31 @@ class CFSRemote extends CFSNetworkAgent {
     })
   }
 
-  async status({id, key}) {
-    return this.get({
-      uri: '/~/status',
+  async call(method, action, {id, key, revision}) {
+    return this[method.toLowerCase()]({
+      uri: `/~/${action}`,
       headers: {
+        [kCFSRevisionHeader]: revision || '',
         [kCFSKeyHeader]: normalizeCFSKey(key),
         [kCFSIDHeader]: id,
       }
     })
+  }
+
+  async create(opts) {
+    return this.call('POST', 'create', opts)
+  }
+
+  async destroy(opts) {
+    return this.call('DELETE', 'destroy', opts)
+  }
+
+  async sync(opts) {
+    return this.call('POST', 'sync', opts)
+  }
+
+  async status(opts) {
+    return this.call('GET', 'status', opts)
   }
 }
 

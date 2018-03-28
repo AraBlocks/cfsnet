@@ -5,8 +5,9 @@ const { hash } = require('./crypto')
 
 function createCFSSignalHub({discoveryKey, urls}) {
   return new SignalHub(
-    Buffer.from(discoveryKey).toString('hex'),
+    Buffer.isBuffer(discoveryKey) ? discoveryKey.toString('hex') : discoveryKey,
     urls || [ 'https://signalhub.littlstar.com' ]
+    //urls || [ 'http://localhost:8888' ]
   )
 }
 

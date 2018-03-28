@@ -23,6 +23,7 @@
     "is-browser": "^2.0.1",
     "mkdirp": "^0.5.1",
     "ms": "^2.1.1",
+    "mutexify": "^1.2.0",
     "pify": "^3.0.0",
     "pump": "^3.0.0",
     "random-access-s3": "^1.0.0",
@@ -32,13 +33,15 @@
     "signalhub": "^4.9.0",
     "simple-websocket": "^7.0.2",
     "superagent": "^3.8.2",
-    "through": "^2.3.8"
+    "through": "^2.3.8",
+    "webrtc-swarm": "^2.9.0"
   },
   "devDependencies": {
     "mediasource": "^2.1.3",
     "nanohtml": "^1.2.2",
     "nanomorph": "^5.1.3",
     "shaka-player": "^2.3.4",
-    "videostream": "^2.4.2"
+    "videostream": "^2.4.2",
+    "wrtc": "0.0.67"
   }
 }

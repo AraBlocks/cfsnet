@@ -66,6 +66,10 @@ class CFSNetworkAgent {
     return this.request(Object.assign({method: 'DELETE'}, opts))
   }
 
+  async delete(opts) {
+    return this.del(opts)
+  }
+
   async request({method, uri, data, retry, headers, query}) {
     if (!method || 'string' != typeof method) {
       throw new TypeError("CFSNetworkAgent.request(): Expecting method to be a string")

@@ -58,9 +58,7 @@ async function createCFS({
   key = normalizeCFSKey(key)
   path = path || createCFSKeyPath({id, key})
 
-  const idFile = '/etc/cfs-id'
-
-  if (drives[path]) {
+  if (path in drives) {
     return drives[path]
   }
 
@@ -87,6 +85,8 @@ async function createCFS({
   debug("....Ready !")
 
   drive.HOME = null
+  drive.identifier = null
+
   drives[path] = drive
 
   const close = drive.close.bind(drive)
@@ -105,15 +105,36 @@ async function createCFS({
 
   if (id) {
     drive.HOME = `/home/${id}`
-    drive.identifier = id
+    drive.identifier = Buffer.from(id)
+  } else {
+    await onupdate()
+  }
+
+  drive.on('update', onupdate)
+  drive.on('content', onupdate)
+
+  async function onupdate() {
+    debug("onupdate")
+    try {
+      await pify(drive.access)(kCFSIDFile)
+      if (null == drive.identifier) {
+        drive.identifier = await pify(drive.readFile)(kCFSIDFile)
+      }
+      drive.emit('id', drive.identifier)
+      drive.emit('identifier', drive.identifier)
+      drive.removeListener('update', onupdate)
+      drive.removeListener('content', onupdate)
+    } catch (err) {
+      debug("onupdate: error:", err)
+    }
   }
 
   if (drive.writable) {
     await initSystem()
     await initId()
     await initHome()
-    if ('function' == typeof drive.flushEvents) {
 
+    if ('function' == typeof drive.flushEvents) {
       debug("Flushing events")
       await drive.flushEvents()
     }
@@ -128,25 +149,27 @@ async function createCFS({
   return drive
 
   async function initSystem() {
-    debug("initSystem()")
+    debug("init: system")
     debug("Ensuring file system integrity" )
     await createCFSDirectories({id, path, drive, key, sparse})
     await createCFSFiles({id, path, drive, key, sparse})
   }
 
   async function initId() {
+    debug("init: id")
     if (id && drive.writable) {
-      try { await pify(drive.stat)(idFile) }
-      catch (err) { await pify(drive.writeFile)(idFile, Buffer.from(id)) }
+      await pify(drive.writeFile)(kCFSIDFile, id)
     }
   }
 
   async function initHome() {
-    if (drive.identifier && drive.writable) {
-      debug("initHome()")
+    if (drive.identifier) {
+      debug("init: home")
       drive.HOME = `/home/${drive.identifier}`
-      try { await pify(drive.stat)(drive.HOME) }
-      catch (err) { await pify(drive.mkdirp)(drive.HOME) }
+      if (drive.writable) {
+        try { await pify(drive.access)(drive.HOME) }
+        catch (err) { await pify(drive.mkdirp)(drive.HOME) }
+      }
     }
   }
 }
