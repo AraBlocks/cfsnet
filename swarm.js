@@ -175,14 +175,14 @@ async function createCFSDiscoverySwarm({
       lock.heartbeat((release) => {
         const { abs, cos, sin, floor } = Math
         const t = Date.now()
-        const x = 5000 // in ms
+        const x = 3000 // in ms
         const y = 0.5 // scale
         const wait = Math.max(y*x, floor((x+y*x - abs(y*x*cos(y*t)) + x*sin(y*1-t)) / ++i))
         debug("heartbeat: wait=%s", wait)
         pingpong() // init ping
         clearInterval(interval)
         interval = setInterval(pingpong, wait)
-        release()
+        setTimeout(release, wait)
       })
     }
 

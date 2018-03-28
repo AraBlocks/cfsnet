@@ -3,10 +3,8 @@
 const WebSocketServer = require('simple-websocket/server')
 const WebSocket = require('simple-websocket')
 
-async function createCFSWebSocketServer({
-  port = 0
-}) {
-  const server = new WebSocketServer({port})
+async function createCFSWebSocketServer(opts) {
+  const server = new WebSocketServer(opts)
   return server
 }
 
