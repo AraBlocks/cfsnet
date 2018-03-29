@@ -84,55 +84,194 @@ async function createCFS({
   await new Promise((resolve) => drive.ready(resolve))
   debug("....Ready !")
 
-  drive.HOME = null
-  drive.identifier = null
-
+  debug("Caching CFS drive in CFSMAP")
   drives[path] = drive
 
-  const close = drive.close.bind(drive)
+  drive.identifier = id ? Buffer.from(id) : null
 
-  drive.close = (...args) => {
-    delete drives[path]
-    return close(...args)
+  Object.defineProperties(drive, {
+    CFSID: {
+      get () { return kCFSIDFile }
+    },
+
+    HOME: {
+      get() {
+        const { USER } = drive
+        if (USER) {
+          return `/home/${USER}`
+        } else {
+          return null
+        }
+      }
+    },
+
+    USER: {
+      get() {
+        const { identifier } = drive
+        if (Buffer.isBuffer(identifier)) {
+          return identifier.toString()
+        } else if ('string' == typeof identifier) {
+          return identifier
+        } else {
+          return null
+        }
+      }
+    },
+  })
+
+  const core = {
+    open: drive.open,
+    stat: drive.stat,
+    lstat: drive.lstat,
+    close: drive.close,
+
+    read: drive.read,
+    rmdir: drive.rmdir,
+    touch: drive.touch,
+    rimraf: drive.rimraf,
+    unlink: drive.unlink,
+    mkdirp: drive.unlink,
+    readdir: drive.readdir,
+
+    access: drive.access,
+    download: drive.download,
+    readFile: drive.readFile,
+    writeFile: drive.writeFile,
+
+    createDiffStream: drive.createDiffStream,
+    createReadStream: drive.createReadStream,
+    createWriteStream: drive.createWriteStream,
   }
 
-  drive.update = (...args) => {
-    if (drive.metadata) {
-      drive.metadata.update(...args)
+  Object.assign(drive, pify({
+    open(filename, flags, mode, cb) {
+      return core.open(drive.resolve(filename), flags, mode, cb)
+    },
+
+    stat(filename, cb) {
+      return core.stat(drive.resolve(filename), cb)
+    },
+
+    lstat(filename, cb) {
+      return core.lstat(drive.resolve(filename), cb)
+    },
+
+    close(fd, cb) {
+      if ('function' == typeof fd) {
+        cb = fd
+        fd = null
+        delete drives[path]
+        return core.close(cb)
+      } else if (fd && cb) {
+        return core.close(fd, cb)
+      } else {
+        return core.close(fd, cb)
+      }
+    },
+
+    read(...args) {
+      return core.read(...args)
+    },
+
+    rmdir(filename, cb) {
+      return core.rmdir(drive.resolve(filename), cb)
+    },
+
+    touch(filename, cb) {
+      return core.touch(drive.resolve(filename), cb)
+    },
+
+    rimraf(filename, cb) {
+      return core.rimraf(drive.resolve(filename), cb)
+    },
+
+    unlink(filename, cb) {
+      return core.unlink(drive.resolve(filename), cb)
+    },
+
+    mkdirp(filename, cb) {
+      return core.mkdirp(drive.resolve(filename), cb)
+    },
+
+    readdir(filename, opts, cb) {
+      return core.readdir(drive.resolve(filename), opts, cb)
+    },
+
+    access(filename, cb) {
+      return core.access(drive.resolve(filename), cb)
+    },
+
+    download(filename, cb) {
+      if ('function' == typeof filename) {
+        cb = filename
+        return core.download(cb)
+      } else if ('string' == typeof filename) {
+        return core.download(drive.resolve(filename), cb)
+      } else {
+        return core.download(filename, cb)
+      }
+    },
+
+    readFile(filename, opts, cb) {
+      return core.readFile(drive.resolve(filename), opts, cb)
+    },
+
+    writeFile(filename, buffer, opts, cb) {
+      return core.writeFile(drive.resolve(filename), buffer, opts, cb)
+    },
+  }))
+
+  Object.assign(drive, {
+    createReadStream(filename, opts) {
+      return core.createReadStream(drive.resolve(filename), opts)
+    },
+
+    createWriteStream(filename, opts) {
+      return core.createWriteStream(drive.resolve(filename), opts)
+    },
+
+    update(...args) {
+      if (drive.metadata) {
+        drive.metadata.update(...args)
+      }
+      return drive
+    },
+
+    resolve(filename) {
+      const { HOME } = drive
+      debug("resolve: HOME=%s filename=%s", HOME, filename)
+
+      if (HOME) {
+        return resolve(HOME, parse(filename))
+      } else {
+        return filename
+      }
+
+      function parse(filename) {
+        if ('string' != typeof filename) {
+          return '.'
+        }
+        // $1 is matched group after optional tilde
+        filename = filename.replace(/^~\//, '')
+
+        return filename
+      }
     }
-    return drive
-  }
-
-  drive.HOME = null
-  drive.CFSID = null
-
-  if (id) {
-    drive.identifier = Buffer.from(id)
-    process.nextTick(() => onidentifier(drive.identifier))
-  } else {
-    await onupdate()
-  }
+  })
 
   drive.ready(onready)
   drive.on('update', onupdate)
   drive.on('content', onupdate)
 
-  await initId()
-  await initHome()
-  await initSystem()
-
-  if (drive.writable) {
-    if ('function' == typeof drive.flushEvents) {
-      debug("Flushing events")
-      await drive.flushEvents()
-    }
-
-    if (eventStream) {
-      await createCFSEventStream({path, drive, enabled: eventStream})
-    }
+  if (drive.identifier) {
+    process.nextTick(() => onidentifier(drive.identifier))
+  } else {
+    await onupdate()
   }
 
-  debug("Caching CFS drive in CFSMAP")
+  await createIdentifierFile()
+  await createHome()
+  await createFileSystem()
 
   return drive
 
@@ -159,18 +298,26 @@ async function createCFS({
     }
   }
 
-  async function initSystem() {
+  async function createFileSystem() {
     debug("init: system")
     debug("Ensuring file system integrity" )
     if (drive.writable) {
       await createCFSDirectories({id, path, drive, key, sparse})
       await createCFSFiles({id, path, drive, key, sparse})
+
+      if ('function' == typeof drive.flushEvents) {
+        debug("Flushing events")
+        await drive.flushEvents()
+      }
+
+      if (eventStream) {
+        await createCFSEventStream({path, drive, enabled: eventStream})
+      }
     }
   }
 
-  async function initId() {
+  async function createIdentifierFile() {
     debug("init: id")
-    drive.CFSID = kCFSIDFile
     if (id && drive.writable) {
       await pify(drive.writeFile)(kCFSIDFile, Buffer.from(id))
     } else {
@@ -178,11 +325,11 @@ async function createCFS({
     }
   }
 
-  async function initHome() {
+  async function createHome() {
+    const { HOME } = drive
     if (drive.identifier) {
       debug("init: home")
-      drive.HOME = `/home/${drive.identifier}`
-      if (drive.writable) {
+      if (drive.writable && HOME) {
         try { await pify(drive.access)(drive.HOME) }
         catch (err) { await pify(drive.mkdirp)(drive.HOME) }
       }

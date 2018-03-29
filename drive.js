@@ -61,6 +61,10 @@ function wrap(drive) {
 
     'readFile',
     'writeFile',
+
+    'createDiffStream',
+    'createReadStream',
+    'createWriteStream',
   ]
 
   const fs = {}
