@@ -24,6 +24,8 @@ const {
   createCFSWebSocket,
 } = require('./ws')
 
+const kMaxWebSocketConnectRetries = 5
+
 /**
  * Creates a CFS discovery network swarm
  *
@@ -42,6 +44,7 @@ async function createCFSDiscoverySwarm({
   cfs = null,
   key = null,
   id = null,
+  maxConcurrentWebSocketConnections = 4,
   maxConnections = 60,
   signalhub = null,
   download = true,
@@ -175,7 +178,7 @@ async function createCFSDiscoverySwarm({
       lock.heartbeat((release) => {
         const { abs, cos, sin, floor } = Math
         const t = Date.now()
-        const x = 3000 // in ms
+        const x = 1000 // in ms
         const y = 0.5 // scale
         const wait = Math.max(y*x, floor((x+y*x - abs(y*x*cos(y*t)) + x*sin(y*1-t)) / ++i))
         debug("heartbeat: wait=%s", wait)
@@ -199,14 +202,22 @@ async function createCFSDiscoverySwarm({
         i = 0
         clearInterval(interval)
         channel.removeListener('data', onack)
-        try { await connect(res) }
-        catch (err) { debug("onack: connect: error:", err) }
+        for (let k = 0; k < maxConcurrentWebSocketConnections; ++k) {
+          try { await connect(res) }
+          catch (err) { debug("onack: connect(#%d): error:", k, err) }
+        }
       }
     }
 
-    async function connect(info) {
+    async function connect(info, retries) {
+      if (null == retries) {
+        retries = kMaxWebSocketConnectRetries
+      } else if (0 === retries) {
+        return heartbeat()
+      }
+
       if (maxConnections && connections.length >= maxConnections) {
-        return
+        return heartbeat()
       }
 
       debug("connect:", info)
@@ -229,13 +240,17 @@ async function createCFSDiscoverySwarm({
           try { return await pify(tryConnect)(host) }
           catch (err) { debug("connect: error:", err) }
         }
+
+        if (retries && 'number' == typeof retries) {
+          setTimeout(() => connect(info, --retries), 1000 / (0.1*retries))
+        }
       }
 
       async function tryConnect(host, cb) {
         debug("connect: try:", host)
         const socket = await createCFSWebSocket({host})
-        socket.once('error', cb)
         socket.once('connect', () => cb(null))
+        socket.once('error', cb)
 
         socket.on('close', () => {
           connections.splice(connections.indexOf(socket), 1)
