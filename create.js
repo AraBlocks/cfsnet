@@ -130,7 +130,7 @@ async function createCFS({
     touch: drive.touch,
     rimraf: drive.rimraf,
     unlink: drive.unlink,
-    mkdirp: drive.unlink,
+    mkdirp: drive.mkdirp,
     readdir: drive.readdir,
 
     access: drive.access,
@@ -263,15 +263,15 @@ async function createCFS({
   drive.on('update', onupdate)
   drive.on('content', onupdate)
 
+  await createIdentifierFile()
+  await createFileSystem()
+  await createHome()
+
   if (drive.identifier) {
     process.nextTick(() => onidentifier(drive.identifier))
   } else {
     await onupdate()
   }
-
-  await createIdentifierFile()
-  await createHome()
-  await createFileSystem()
 
   return drive
 
@@ -301,7 +301,7 @@ async function createCFS({
   async function createFileSystem() {
     debug("init: system")
     debug("Ensuring file system integrity" )
-    if (drive.writable) {
+    if (id && drive.writable) {
       await createCFSDirectories({id, path, drive, key, sparse})
       await createCFSFiles({id, path, drive, key, sparse})
 
