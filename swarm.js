@@ -277,11 +277,15 @@ async function createCFSDiscoverySwarm({
   return swarm
 
   function pingpong() {
+    let released = false
     lock.pingpong((release) => {
-      //setTimeout(release, 5000)
-      debug("ping <> pong", uid)
-      hub.broadcast(ping, {id: uid})
-      hub.subscribe(ack).once('data', release)
+      setTimeout(() => !released && release(), 5000)
+      debug("pingpong: ", uid)
+      hub.broadcast(ping, {id: uid}, (err) => {
+        if (err) { debug("pingpong: error:", err) }
+        released = true
+        release()
+      })
     })
   }
 
