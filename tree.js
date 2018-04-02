@@ -38,7 +38,6 @@ class Tree {
 
     // FHS directory tree
     this.directories.push('/')
-    this.directories.push('/root')
     this.directories.push('/home')
     this.directories.push('/etc')
     this.directories.push('/lib')
