@@ -82,9 +82,17 @@ async function createCFSDiscoverySwarm({
 
   const hub = await createCFSSignalHub({discoveryKey})
   debug("topic: broadcast: %s", kTopicJoinOp)
-  topic.broadcast(kTopicJoinOp)
-  cfs.once('close', () => { topic.broadcast(kTopicLeaveOp) })
-  process.once('beforeExit', () => { topic.broadcast(kTopicLeaveOp) })
+
+  try { topic.broadcast(kTopicJoinOp) }
+  catch (err) { debug("topic: broadcast: error:", err) }
+
+  cfs.once('close', onexit)
+  process.once('beforeExit', onexit)
+
+  function onexit() {
+    try { topic.broadcast(kTopicLeaveOp) }
+    catch (err) { debug("topic: broadcast: error:", err) }
+  }
 
   if (false == isBrowser) {
     swarm = discovery({
@@ -304,10 +312,15 @@ async function createCFSDiscoverySwarm({
     let released = false
     lock.pingpong((release) => {
       debug("pingpong: ", uid)
-      hub.broadcast(ping, {id: uid}, (err) => {
-        if (err) { debug("pingpong: error:", err) }
-        done()
-      })
+      try {
+        hub.broadcast(ping, {id: uid}, (err) => {
+          if (err) { debug("pingpong: error:", err) }
+          done()
+        })
+      } catch (err) {
+        debug("pingpong: error:", err)
+        release()
+      }
 
       function done() {
         if (!released) { release() }
