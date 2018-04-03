@@ -8,6 +8,7 @@ const { destroyCFS } = require('./destroy')
 const { resolve } = require('path')
 const isBrowser = require('is-browser')
 const drives = require('./drives')
+const crypto = require('./crypto')
 const mkdirp = require('mkdirp')
 const debug = require('debug')('littlstar:cfs:create')
 const tree = require('./tree')
@@ -96,22 +97,9 @@ async function createCFS({
 
     HOME: {
       get() {
-        const { USER } = drive
-        if (USER) {
-          return `/home/${USER}`
-        } else {
-          return null
-        }
-      }
-    },
-
-    USER: {
-      get() {
         const { identifier } = drive
-        if (Buffer.isBuffer(identifier)) {
-          return identifier.toString()
-        } else if ('string' == typeof identifier) {
-          return identifier
+        if (identifier) {
+          return `/home`
         } else {
           return null
         }
@@ -319,7 +307,8 @@ async function createCFS({
   async function createIdentifierFile() {
     debug("init: id")
     if (id && drive.writable) {
-      await pify(drive.writeFile)(kCFSIDFile, Buffer.from(id))
+      try { await pify(drive.access)(kCFSIDFile) }
+      catch (err) { await pify(drive.writeFile)(kCFSIDFile, Buffer.from(id)) }
     } else {
       await onupdate()
     }
@@ -371,22 +360,37 @@ async function createCFSFiles({id, path, drive, key, sparse}) {
   drive = drive || drives[path] || await createCFSDrive({path, key, sparse})
   debug("Ensuring CFS files for '%s' with key '%s'",
     path, drive.key.toString('hex'))
-  for (const file of tree.files) {
-    debug("Ensuring file '%s'", file)
-    try { await pify(drive.stat)(file) }
-    catch (err) { await pify(drive.touch)(file) }
+
+  try {
+    const signatureFile = '/etc/cfs-signature'
+    try { await pify(drive.access)(signatureFile) }
+    catch (err) {
+      const signature = crypto.hash(Buffer.concat([
+        drive.identifier, drive.key, drive.metadata.secretKey
+      ]))
+      debug("Writing CFS signature '%s' to %s", signature, signatureFile)
+      await pify(drive.writeFile)(signatureFile, Buffer.from(signature))
+    }
+  } catch (err) {
+    debug("Failed to create `/etc/cfs-signature' file", err)
   }
 
   try {
     const epochFile = '/etc/cfs-epoch'
-    const epoch = await pify(drive.readFile)(epochFile, 'utf8')
-    if (!epoch || !epoch.length) {
-      const timestamp = String((Date.now()/1000)|0)
+    try { await pify(drive.access)(epochFile) }
+    catch (err) {
+      const timestamp = String((Date.now()/1000)|0) // in seconds
       debug("Writing CFS epoch '%s' to %s", timestamp, epochFile)
       await pify(drive.writeFile)(epochFile, Buffer.from(timestamp))
     }
   } catch (err) {
     debug("Failed to create `/etc/cfs-epoch' file", err)
+  }
+
+  for (const file of tree.files) {
+    debug("Ensuring file '%s'", file)
+    try { await pify(drive.stat)(file) }
+    catch (err) { await pify(drive.touch)(file) }
   }
 }
 

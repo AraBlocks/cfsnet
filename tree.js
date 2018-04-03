@@ -49,6 +49,7 @@ class Tree {
     // CFS files
     this.files.push('/etc/cfs-id')
     this.files.push('/etc/cfs-epoch')
+    this.files.push('/etc/cfs-signature')
     this.files.push('/var/log/events')
 
     // lock this tree down!

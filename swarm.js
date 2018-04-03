@@ -1,7 +1,6 @@
 'use strict'
 
 const { createCFSSignalHub } = require('./signalhub')
-const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
 const createWebRTCSwarm = require('webrtc-swarm')
 const { createSHA256 } = require('./sha256')
@@ -25,6 +24,9 @@ const {
 } = require('./ws')
 
 const kMaxWebSocketConnectRetries = 5
+
+const kTopicJoinOp = 'join'
+const kTopicLeaveOp = 'leave'
 
 /**
  * Creates a CFS discovery network swarm
@@ -73,10 +75,16 @@ async function createCFSDiscoverySwarm({
 
   const discoveryKey = crypto.generateDiscoveryKey(keyPair.publicKey)
   const lock = { heartbeat: mutexify(), pingpong: mutexify() }
-  const hub = await createCFSSignalHub({discoveryKey})
+  const topic = await createCFSSignalHub({discoveryKey: cfs.identifier})
   const uid = cuid()
 
   let swarm = null
+
+  const hub = await createCFSSignalHub({discoveryKey})
+  debug("topic: broadcast: %s", kTopicJoinOp)
+  topic.broadcast(kTopicJoinOp)
+  cfs.once('close', () => { topic.broadcast(kTopicLeaveOp) })
+  process.once('beforeExit', () => { topic.broadcast(kTopicLeaveOp) })
 
   if (false == isBrowser) {
     swarm = discovery({
@@ -90,6 +98,8 @@ async function createCFSDiscoverySwarm({
         domain: dns.domain || 'cfs.local',
         server: dns.server || [
           '127.0.0.1',
+
+          // @TODO(werle): move these to `cfs-cli'
           'cfa-alpha.us-east-1.littlstar.com',
           'cfa-beta.us-east-1.littlstar.com',
           'cfa-gamma.us-east-1.littlstar.com',
@@ -102,6 +112,8 @@ async function createCFSDiscoverySwarm({
         maxTables: dht.maxTables || 10000,
         bootstrap: dht.bootstrap || [
           {host: '127.0.0.1', port: 6881},
+
+          // @TODO(werle): move these to `cfs-cli'
           {host: 'dht.us-east-1.littlstar.com', port: 6881},
           {host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881},
           {host: 'cfa-beta.us-east-1.littlstar.com', port: 6881},
@@ -167,7 +179,8 @@ async function createCFSDiscoverySwarm({
     }
 
     const channel = hub.subscribe(ack).on('data', onack)
-    const connections = []
+    const connections = swarm.connections || []
+    swarm.connections = connections
 
     let interval = 0
     let i = 0
@@ -270,13 +283,9 @@ async function createCFSDiscoverySwarm({
   }
 
   if (false !== wrtc) {
-    const hub = await createCFSSignalHub({ discoveryKey })
-    const webrtcSwarm = createWebRTCSwarm(hub, {
-      wrtc,
-      //config: { iceServers: [{urls: `stun:127.0.0.1:${19302}`}] },
-    })
+    // TODO(werle): provide ICE/STUN servers
+    const webrtcSwarm = createWebRTCSwarm(hub, { wrtc })
     swarm.on('close', () => { webrtcSwarm.close() })
-    //global.webrtcSwarm = webrtcSwarm
     webrtcSwarm.on('peer', (peer, id) => {
       debug("webrtc: peer:", id)
       swarm.emit('connection', peer, {id})
@@ -294,7 +303,6 @@ async function createCFSDiscoverySwarm({
   function pingpong() {
     let released = false
     lock.pingpong((release) => {
-      setTimeout(done, 5000)
       debug("pingpong: ", uid)
       hub.broadcast(ping, {id: uid}, (err) => {
         if (err) { debug("pingpong: error:", err) }
