@@ -18,7 +18,9 @@ async function createCFSDrive({
 } = {}) {
   key = normalizeCFSKey(key)
 
-  const drive = hyperdrive(storage || path, key ? key : undefined, {
+  let drive = null
+
+  drive = hyperdrive(createStorage(), key ? key : undefined, {
     secretKey,
     sparse: sparse ? true : false,
     latest: latest ? true : false,
@@ -37,6 +39,14 @@ async function createCFSDrive({
     (drive.key || Buffer(0)).toString('hex'))
 
   return wrap(drive)
+
+  function createStorage() {
+    if ('function' == typeof storage) {
+      return (filename) => storage(filename, drive, path)
+    } else {
+      return storage || path
+    }
+  }
 }
 
 function wrap(drive) {

@@ -6,18 +6,30 @@ const { createCFSDrive } = require('./drive')
 const { CFS_ROOT_DIR } = require('./env')
 const { destroyCFS } = require('./destroy')
 const { resolve } = require('path')
+const JSONStream = require('streaming-json-stringify')
+const constants = require('./constants')
 const isBrowser = require('is-browser')
+const collect = require('collect-stream')
+const pumpify = require('pumpify')
+const pumpcat = require('pumpcat')
 const drives = require('./drives')
 const crypto = require('./crypto')
 const mkdirp = require('mkdirp')
+const Batch = require('batch')
 const debug = require('debug')('littlstar:cfs:create')
 const tree = require('./tree')
 const pify = require('pify')
+const ram = require('random-access-memory')
+const ras = require('random-access-stream')
 const ms = require('ms')
 const fs = require('fs')
 
 const kLogEventTimeout = ms('10m')
+const kEventLogFile = '/var/log/events'
 const kCFSIDFile = '/etc/cfs-id'
+const $name = Symbol('partition.name')
+
+const identity = (i) => i
 
 /**
  * Politely ensure the root CFS directory has access, otherwise
@@ -48,7 +60,7 @@ async function createCFS({
   storage = null,
   revision = null,
   secretKey = null,
-  eventStream = false,
+  eventStream = true,
   sparseMetadata = false,
 }) {
 
@@ -73,9 +85,7 @@ async function createCFS({
   const drive = await createCFSDrive({
     key,
     path,
-    sparse,
     storage,
-    revision,
     secretKey,
     sparseMetadata,
   })
@@ -83,31 +93,28 @@ async function createCFS({
   // this needs to occur so a key can be generated
   debug("Ensuring CFS drive is ready")
   await new Promise((resolve) => drive.ready(resolve))
-  debug("....Ready !")
 
   debug("Caching CFS drive in CFSMAP")
   drives[path] = drive
 
   drive.identifier = id ? Buffer.from(id) : null
 
-  Object.defineProperties(drive, {
-    CFSID: {
-      get () { return kCFSIDFile }
-    },
+  Object.defineProperties(drive, Object.getOwnPropertyDescriptors({
+    get partitions() { return partitions },
+    get root() { return core },
 
-    HOME: {
-      get() {
-        const { identifier } = drive
-        if (identifier) {
-          return `/home`
-        } else {
-          return null
-        }
-      }
+    get CFSID() { return kCFSIDFile },
+    get HOME() {
+      const { identifier } = drive
+      if (identifier) { return `/home` }
+      else { return null }
     },
-  })
+  }))
 
   const core = {
+    [$name]: 'core',
+    resolve: identity,
+
     open: drive.open,
     stat: drive.stat,
     lstat: drive.lstat,
@@ -131,102 +138,342 @@ async function createCFS({
     createWriteStream: drive.createWriteStream,
   }
 
+  const fileDescriptors = {}
+  const partitions = Object.create({
+
+    resolve(filename) {
+      const partitions = this
+      const resolved = drive.resolve(filename)
+      debug("partitions: resolve: %s -> %s", filename, resolved)
+      return parse(filename) || core
+
+      function parse(filename) {
+        if ('/' == filename[0]) {
+          for (let i = 1; i < filename.length; ++i) {
+            const slice = filename.slice(1, i + 1)
+            if (slice in partitions) {
+              debug("partitions: resolve: parse:", slice)
+              return partitions[slice]
+            }
+          }
+        }
+        return null
+      }
+    },
+
+    async create(name, opts) {
+      name = name.replace(/^\//, '')
+      if (false == name in this) {
+        Object.assign(opts, {path: resolve(path, name)})
+        this[name] = await createCFSDrive(opts)
+        this[name][$name] = name
+        // wait for partition to be ready
+        await new Promise((resolve) => this[name].ready(resolve))
+        // ensure partition exists as child directory in core (root)
+        if (core.writable) { await pify(core.mkdirp)(name) }
+        Object.assign(this[name], {
+          resolve(filename) {
+            const regex = RegExp(`^/${name}`)
+            const resolved = filename.replace(regex, '')
+            debug("partition %s: resolve: %s -> %s", filename, resolved)
+            return resolved
+          }
+        })
+      }
+
+      return this[name]
+    }
+  })
+
+  await createPartition('/etc')
+  await createPartition('/lib')
+  await createPartition('/tmp')
+  await createPartition('/var')
+
+  const home = await partitions.create('/home', {
+    sparseMetadata, storage, sparse,
+    secretKey: drive.metadata.secretKey,
+    key: drive.metadata.key
+  })
+
   Object.assign(drive, pify({
-    open(filename, flags, mode, cb) {
-      return core.open(drive.resolve(filename), flags, mode, cb)
+    async open(filename, flags, mode, cb) {
+      if ('function' == typeof filename || null == filename) {
+        return core.open(filename)
+      }
+
+      if ('string' == typeof filename) {
+        filename = drive.resolve(filename)
+
+        // coerce arguments
+        if ('function' == typeof flags) {
+          cb = flags
+          mode = null
+          flags = null
+        } else if ('function' == typeof mode) {
+          cb = mode
+          mode = null
+        }
+
+        const partition = partitions.resolve(filename)
+        filename = partition.resolve(filename)
+
+        // acquire file descriptor
+        const fd = await pify(partition.open)(filename, flags, mode)
+        if (!fd || fd <= 0) {
+          return cb(new Error("AccessDenied"))
+        } else {
+          fileDescriptors[fd] = partition
+          return cb(null, fd)
+        }
+      }
+
+      // @TODO(werle): use a real CFS error
+      return cb(new Error("BadOpenRequest")) // UNREACHABLE
     },
 
-    stat(filename, cb) {
-      return core.stat(drive.resolve(filename), cb)
+    async stat(filename, cb) {
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      debug("partition: %s: stat: %s", partition[$name], filename)
+      filename = partition.resolve(filename)
+      return partition.stat(filename, cb)
     },
 
-    lstat(filename, cb) {
-      return core.lstat(drive.resolve(filename), cb)
+    async lstat(filename, cb) {
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: lstat: %s", partition[$name], filename)
+      return partition.lstat(filename, cb)
     },
 
-    close(fd, cb) {
-      if ('function' == typeof fd) {
+    async close(fd, cb) {
+      // close entire CFS
+      if (!fd || 'function' == typeof fd) {
         cb = fd
         fd = null
         delete drives[path]
-        return core.close(cb)
-      } else if (fd && cb) {
-        return core.close(fd, cb)
+        const batch = new Batch().concurrency(1)
+
+        batch.push((done) => { flushHistoryEvents(done) })
+
+        for (const k in partitions) {
+          if (partitions[k] && 'function' == typeof partitions[k].close) {
+            batch.push((done) => partitions[k].close(done))
+          }
+        }
+
+        batch.push((done) => core.close(done))
+        return batch.end(cb)
+      }
+
+      // close fd in partition
+      if (!fd || fd <= 0) {
+        return cb(new Error("NotOpened"))
       } else {
-        return core.close(fd, cb)
+        const partition = fileDescriptors[fd]
+        if (!partition) {
+          return cb(new Error("NotOpened"))
+        }
+        return partition.close(fd, cb)
       }
     },
 
-    read(...args) {
-      return core.read(...args)
+    async read(fd, ...args) {
+      if (!fd || fd <= 0) {
+        throw new Error("NotOpened")
+      } else {
+        const partition = fileDescriptors[fd]
+        if (!partition) {
+          throw new Error("NotOpened")
+        }
+        return partition.read(fd, ...args)
+      }
     },
 
-    rmdir(filename, cb) {
-      return core.rmdir(drive.resolve(filename), cb)
+    async rmdir(filename, cb) {
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: rmdir: %s", partition[$name], filename)
+      return partition.rmdir(filename, cb)
     },
 
-    touch(filename, cb) {
-      return core.touch(drive.resolve(filename), cb)
+    async touch(filename, cb) {
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: touch: %s", partition[$name], filename)
+      return partition.touch(filename, cb)
     },
 
-    rimraf(filename, cb) {
-      return core.rimraf(drive.resolve(filename), cb)
+    async rimraf(filename, cb) {
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: rimraf: %s", partition[$name], filename)
+      return partition.rimraf(filename, cb)
     },
 
-    unlink(filename, cb) {
-      return core.unlink(drive.resolve(filename), cb)
+    async unlink(filename, cb) {
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: unlink: %s", partition[$name], filename)
+      return partition.unlink(filename, cb)
     },
 
-    mkdirp(filename, cb) {
-      return core.mkdirp(drive.resolve(filename), cb)
+    async mkdirp(filename, cb) {
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: mkdirp: %s", partition[$name], filename)
+      return partition.mkdirp(filename, cb)
     },
 
-    readdir(filename, opts, cb) {
-      return core.readdir(drive.resolve(filename), opts, cb)
+    async readdir(filename, opts, cb) {
+      if ('function' == typeof opts) {
+        cb = opts
+        opts = {}
+      }
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: readdir: %s", partition[$name], filename)
+      return partition.readdir(filename, opts, cb)
     },
 
-    access(filename, cb) {
-      return core.access(drive.resolve(filename), cb)
+    async access(filename, mode, cb) {
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      if ('function' == typeof mode) {
+        cb = mode
+        mode = constants.F_OK
+      }
+      debug("partition: %s: access: %s", partition[$name], filename)
+      switch (mode) {
+        case constants.W_OK:
+          if (true !== partition.writable) {
+            debug("writable=false")
+            return cb(new Error("AccessDenied"))
+          }
+
+        case constants.R_OK:
+          if (true !== partition.readable) {
+            debug("readable=false")
+            return cb(new Error("AccessDenied"))
+          }
+
+        case constants.F_OK:
+          try { await pify(partition.access)(filename) }
+          catch (err) {
+            debug("F_OK != true")
+            debug(err)
+            return cb(new Error("AccessDenied"))
+          }
+          break
+
+        case constants.X_OK:
+          return cb(new Error("NotSupported"))
+      }
+
+      return cb(null, true)
     },
 
-    download(filename, cb) {
+    async download(filename, cb) {
       if ('function' == typeof filename) {
+        filename = null
         cb = filename
-        return core.download(cb)
-      } else if ('string' == typeof filename) {
-        return core.download(drive.resolve(filename), cb)
+      }
+
+      if (null == filename) {
+        for (const k in partitions) {
+          const partition = partitions[k]
+          debug("partition: %s: download", partition[$name])
+          await pify(partition.download)()
+        }
       } else {
-        return core.download(filename, cb)
+        filename = drive.resolve(filename)
+        const partition = partitions.resolve(filename)
+        filename = partition.resolve(filename)
+        debug("partition: %s: download: %s", partition[$name], filename)
+        return partition.download(filename, cb)
       }
     },
 
-    readFile(filename, opts, cb) {
-      return core.readFile(drive.resolve(filename), opts, cb)
+    async readFile(filename, opts, cb) {
+      if ('function' == typeof opts) {
+        cb = opts
+        opts = {}
+      }
+
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: readFile: %s", partition[$name], filename)
+      return partition.readFile(filename, opts, cb)
     },
 
-    writeFile(filename, buffer, opts, cb) {
-      return core.writeFile(drive.resolve(filename), buffer, opts, cb)
+    async writeFile(filename, buffer, opts, cb) {
+      if ('function' == typeof opts) {
+        cb = opts
+        opts = {}
+      }
+
+      if ('string' == typeof buffer) {
+        buffer = Buffer.from(buffer)
+      } else if (false == Buffer.isBuffer(buffer)) {
+        return cb(new TypeError("Expecting bytes to be a Buffer"))
+      }
+
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: writeFile: %s", partition[$name], filename)
+      return partition.writeFile(filename, buffer, opts, cb)
     },
   }))
 
   Object.assign(drive, {
     createReadStream(filename, opts) {
-      return core.createReadStream(drive.resolve(filename), opts)
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      return partition.createReadStream(filename, opts)
     },
 
     createWriteStream(filename, opts) {
-      return core.createWriteStream(drive.resolve(filename), opts)
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      return partition.createWriteStream(filename, opts)
     },
 
-    update(...args) {
-      if (drive.metadata) {
-        drive.metadata.update(...args)
-      }
-      return drive
+    history(opts) {
+      return partitions.home.history(opts)
+    },
+
+    replicate(opts) {
+      return partitions.home.replicate(opts)
+    },
+
+    update(cb) {
+      return partitions.home.update(cb)
+    },
+
+    ready(cb) {
+      return partitions.home.ready(cb)
     },
 
     resolve(filename) {
       const { HOME } = drive
+
+      if ('string' != typeof filename) {
+        throw new TypeError("Expecting filename to be a string")
+      }
+
       debug("resolve: HOME=%s filename=%s", HOME, filename)
 
       if (HOME) {
@@ -248,12 +495,11 @@ async function createCFS({
   })
 
   drive.ready(onready)
-  drive.on('update', onupdate)
-  drive.on('content', onupdate)
+  home.on('update', onupdate)
+  home.on('content', onupdate)
 
   await createIdentifierFile()
   await createFileSystem()
-  await createHome()
 
   if (drive.identifier) {
     process.nextTick(() => onidentifier(drive.identifier))
@@ -292,15 +538,6 @@ async function createCFS({
     if (id && drive.writable) {
       await createCFSDirectories({id, path, drive, key, sparse})
       await createCFSFiles({id, path, drive, key, sparse})
-
-      if ('function' == typeof drive.flushEvents) {
-        debug("Flushing events")
-        await drive.flushEvents()
-      }
-
-      if (eventStream) {
-        await createCFSEventStream({path, drive, enabled: eventStream})
-      }
     }
   }
 
@@ -314,14 +551,33 @@ async function createCFS({
     }
   }
 
-  async function createHome() {
-    const { HOME } = drive
-    if (drive.identifier) {
-      debug("init: home")
-      if (drive.writable && HOME) {
-        try { await pify(drive.access)(drive.HOME) }
-        catch (err) { await pify(drive.mkdirp)(drive.HOME) }
-      }
+  async function createPartition(name) {
+    if (false == tree.partitions.includes(name)) {
+      throw new TypeError("Invalid partition: " + name)
+    }
+    name = name.replace(/^\//, '')
+    const secretKey = drive.metadata.secretKey || drive.key
+    const prefix = Buffer.from(name)
+    const seed = Buffer.concat([prefix, secretKey])
+    const keyPair = crypto.generateKeyPair(seed)
+    await partitions.create(name, {
+      sparseMetadata, storage, sparse,
+      secretKey: keyPair.secretKey,
+      key: keyPair.publicKey,
+    })
+  }
+
+  async function flushHistoryEvents(done) {
+    if (eventStream && drive.writable) {
+      const history = drive.history()
+      const serialize = JSONStream()
+      pumpcat(history, serialize, (err, buf) => {
+        if (buf) {
+          drive.writeFile(kEventLogFile, buf, done)
+        } else {
+          done(err)
+        }
+      })
     }
   }
 }
@@ -391,56 +647,6 @@ async function createCFSFiles({id, path, drive, key, sparse}) {
     debug("Ensuring file '%s'", file)
     try { await pify(drive.stat)(file) }
     catch (err) { await pify(drive.touch)(file) }
-  }
-}
-
-async function createCFSEventStream({drive, enabled = true}) {
-  if (drive.hasEventStream) { return }
-  const log = '/var/log/events'
-  await pify(drive.ready)()
-  await pify(drive.touch)(log)
-  const timestamp = () => Math.floor(Date.now()/1000) // unix timestamp (seconds)
-  let eventCount = 0
-  let timeout = 0
-  let logIndex = 0
-  let logsSeen = 0
-  let logs = null
-  try {
-    await new Promise(async (resolve, reject) => {
-      setTimeout(reject, 250)
-      await pify(drive.access)(log)
-      logs = String(await pify(drive.readFile)(log)).split('\n')
-    })
-  } catch (err) {
-    logs = []
-  } finally {
-    logIndex = logs.length
-  }
-
-  if (enabled) {
-    timeout = setTimeout(flushEvents, kLogEventTimeout)
-    setTimeout(flushEvents, 0)
-    drive.history({live: true}).on('data', async (event) => {
-      if (log == event.name) { return }
-      if (logsSeen++ < logIndex) { return }
-      Object.assign(event, {timestamp: timestamp()})
-      const entry = JSON.stringify(event)
-      debug("event:", entry)
-      logs.push(entry)
-      if (++eventCount > 10) { await flushEvents() }
-    })
-    process.once('exit', async () => await flushEvents())
-  }
-  drive.hasEventStream = true
-  drive.flushEvents = flushEvents
-  async function flushEvents() {
-    clearTimeout(timeout)
-    timeout = setTimeout(flushEvents, kLogEventTimeout)
-    if (0 == eventCount) { return }
-    logs.push(JSON.stringify({type: "flush", timestamp: timestamp()}))
-    debug("Flushing logs to '%s'", log)
-    await pify(drive.writeFile)(log, logs.join('\n'))
-    eventCount = 0
   }
 }
 

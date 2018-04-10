@@ -17,6 +17,14 @@ class Tree {
   constructor() {
 
     /**
+     * An array of partitioned file systems.
+     * @public
+     * @const
+     * @type {Array<String>}
+     */
+    this.partitions = []
+
+    /**
      * An array of the default directory structure for a CFS.
      * This directory tree defines a subset of the Filesystem Hierarchy Standard.
      * Directories in the file system tree are intended to have similar use to
@@ -36,13 +44,14 @@ class Tree {
      */
     this.files = []
 
-    // FHS directory tree
-    this.directories.push('/')
-    this.directories.push('/home')
-    this.directories.push('/etc')
-    this.directories.push('/lib')
-    this.directories.push('/tmp')
-    this.directories.push('/var')
+    // FHS partitions
+    this.partitions.push('/etc')
+    this.partitions.push('/lib')
+    this.partitions.push('/tmp')
+    this.partitions.push('/var')
+    this.partitions.push('/home')
+
+    // FHS partition directories
     this.directories.push('/var/log')
     this.directories.push('/var/cache')
 
@@ -53,6 +62,7 @@ class Tree {
     this.files.push('/var/log/events')
 
     // lock this tree down!
+    Object.seal(Object.freeze(this.partitions))
     Object.seal(Object.freeze(this.directories))
     Object.seal(Object.freeze(this.files))
     Object.seal(Object.freeze(this))

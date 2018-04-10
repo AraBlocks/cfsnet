@@ -6,16 +6,18 @@ const createWebRTCSwarm = require('webrtc-swarm')
 const { createSHA256 } = require('./sha256')
 const { EventEmitter } = require('events')
 const { createCFS } = require('./create')
+const randombytes = require('randombytes')
+const Connections = require('connections')
 const isBrowser = require('is-browser')
 const discovery = require('discovery-swarm')
 const mutexify = require('mutexify')
 const drives = require('./drives')
 const crypto = require('./crypto')
 const debug = require('debug')('littlstar:cfs:swarm')
+const lucas = require('lucas-series')
 const ipify = require('ipify')
 const pify = require('pify')
 const pump = require('pump')
-const cuid = require('cuid')
 const ip = require('ip')
 
 const {
@@ -24,9 +26,8 @@ const {
 } = require('./ws')
 
 const kMaxWebSocketConnectRetries = 5
-
-const kTopicJoinOp = 'join'
 const kTopicLeaveOp = 'leave'
+const kTopicJoinOp = 'join'
 
 /**
  * Creates a CFS discovery network swarm
@@ -46,7 +47,6 @@ async function createCFSDiscoverySwarm({
   cfs = null,
   key = null,
   id = null,
-  maxConcurrentWebSocketConnections = 4,
   maxConnections = 60,
   signalhub = null,
   download = true,
@@ -74,9 +74,10 @@ async function createCFSDiscoverySwarm({
   const keyPair = crypto.generateKeyPair(Buffer.from(hash.slice(0, 64)))
 
   const discoveryKey = crypto.generateDiscoveryKey(keyPair.publicKey)
+  const discoveryId = randombytes(32)
   const lock = { heartbeat: mutexify(), pingpong: mutexify() }
   const topic = await createCFSSignalHub({discoveryKey: cfs.identifier})
-  const uid = cuid()
+  const uid = discoveryId.toString('hex')
 
   let swarm = null
 
@@ -96,7 +97,8 @@ async function createCFSDiscoverySwarm({
 
   if (false == isBrowser) {
     swarm = discovery({
-      maxConnections, stream, hash: false,
+      maxConnections, stream,
+      id: discoveryId, hash: false,
 
       dns: {
         ttl: dns.ttl || 30,
@@ -150,9 +152,12 @@ async function createCFSDiscoverySwarm({
     })
   }
 
+  //if (0) {
   if (false !== ws) {
     if (false == isBrowser) {
       const wss = await createCFSWebSocketServer(ws)
+      const wsConnections = Connections(wss)
+      wss.setMaxListeners(Infinity)
       swarm.on('close', () => wss.close())
       hub.subscribe(ping).on('data', async (req) => {
         debug("me:", {id: uid})
@@ -172,9 +177,10 @@ async function createCFSDiscoverySwarm({
       wss.on('connection', (socket) => {
         const { port } = wss._server.address()
         const info = {port, address: 'websocket'}
+        wsConnections.add(socket)
         swarm.emit('connection', socket, info)
         socket.pipe(stream()).pipe(socket)
-        socket.on('error', (err) => {
+        socket.once('error', (err) => {
           debug("wss: connection: socket: error:", err)
           swarm.emit('error', err)
         })
@@ -186,22 +192,23 @@ async function createCFSDiscoverySwarm({
       })
     }
 
-    const channel = hub.subscribe(ack).on('data', onack)
+    const channel = hub.subscribe(ack)
+    const peersSeen = {}
+    const connected = []
     const connections = swarm.connections || []
     swarm.connections = connections
 
+    const L = lucas(0)
     let interval = 0
-    let i = 0
 
     heartbeat()
 
     function heartbeat() {
       lock.heartbeat((release) => {
-        const { abs, cos, sin, floor } = Math
-        const t = Date.now()
-        const x = 1000 // in ms
-        const y = 0.5 // scale
-        const wait = Math.max(y*x, floor((x+y*x - abs(y*x*cos(y*t)) + x*sin(y*1-t)) / ++i))
+        channel.removeListener('data', onack)
+        channel.on('data', onack)
+        const { value } = L.next()
+        const wait = 500 * value
         debug("heartbeat: wait=%s", wait)
         pingpong() // init ping
         clearInterval(interval)
@@ -220,17 +227,15 @@ async function createCFSDiscoverySwarm({
     async function onack(res) {
       if (uid != res.id) {
         debug("onack")
-        i = 0
         clearInterval(interval)
         channel.removeListener('data', onack)
-        for (let k = 0; k < maxConcurrentWebSocketConnections; ++k) {
-          try { await connect(res) }
-          catch (err) { debug("onack: connect(#%d): error:", k, err) }
-        }
+        try { await connect(res) }
+        catch (err) { debug("onack: connect: error:", err) }
       }
     }
 
     async function connect(info, retries) {
+
       if (null == retries) {
         retries = kMaxWebSocketConnectRetries
       } else if (0 === retries) {
@@ -256,36 +261,54 @@ async function createCFSDiscoverySwarm({
           catch (err) { debug("connect: error:", err) }
         }
 
-        if (info.address) {
+        if (info.address && info.address != info.localAddress) {
           let host = `ws://${info.address}:${info.port}`
           try { return await pify(tryConnect)(host) }
           catch (err) { debug("connect: error:", err) }
         }
 
         if (retries && 'number' == typeof retries) {
-          setTimeout(() => connect(info, --retries), 1000 / (0.1*retries))
+          const retry = kMaxWebSocketConnectRetries - retries
+          const wait = [ ...lucas(retry, kMaxWebSocketConnectRetries) ][retry]
+          setTimeout(() => connect(info, --retries), wait)
         }
       }
 
       async function tryConnect(host, cb) {
+        if (connected.includes(host)) {
+          return cb(new Error("Already connected"))
+        }
+
         debug("connect: try:", host)
         const socket = await createCFSWebSocket({host})
         socket.once('connect', () => cb(null))
-        socket.once('error', cb)
+        socket.once('error', (err) => {
+          cleanup()
+          cb(err)
+        })
 
         socket.on('close', () => {
-          connections.splice(connections.indexOf(socket), 1)
+          cleanup()
           if (0 == connections.length) {
             heartbeat()
           }
         })
 
         socket.on('connect', () => {
+          connected.push(host)
           connections.push(socket)
           swarm.emit('connection', socket, info)
           debug("socket: connect")
           socket.pipe(stream()).pipe(socket)
         })
+
+        function cleanup() {
+          connections.splice(connections.indexOf(socket), 1)
+          // cool off
+          setTimeout(() => {
+            connected.splice(connected.indexOf(host), 1)
+          }, 3000)
+        }
       }
     }
   }
