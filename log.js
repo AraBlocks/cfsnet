@@ -4,7 +4,7 @@ const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
 const through = require('through')
 const drives = require('./drives')
-const debug = require('debug')('littlstar:cfs:log')
+const debug = require('debug')('cfsnet:log')
 
 async function createCFSLog({
   id = null,

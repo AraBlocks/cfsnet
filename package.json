@@ -1,7 +1,7 @@
 {
-  "name": "littlstar-cfs",
+  "name": "cfsnet",
   "version": "1.0.0",
-  "description": "Littlstar CFS Module",
+  "description": "The Conflict-Free File System Network is a distributed file system network for securely authoring and sharing files.",
   "main": "index.js",
   "scripts": {
     "dependency-check": "dependency-check .",

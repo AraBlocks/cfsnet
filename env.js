@@ -1,7 +1,7 @@
 'use strict'
 
 const { resolve, join } = require('path')
-const debug = require('debug')('littlstar:cfs:env')
+const debug = require('debug')('cfsnet:env')
 
 /**
  * The root CFS directory path on the machine's filesystem.

@@ -6,7 +6,7 @@ const { CFS_ROOT_DIR } = require('./env')
 const { resolve } = require('path')
 const drives = require('./drives')
 const rimraf = require('rimraf')
-const debug = require('debug')('littlstar:cfs:destroy')
+const debug = require('debug')('cfsnet:destroy')
 const pify = require('pify')
 
 /**

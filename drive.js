@@ -4,7 +4,7 @@ const { normalizeCFSKey } = require('./key')
 const hyperdrive = require('hyperdrive')
 const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
-const debug = require('debug')('littlstar:cfs:create:drive')
+const debug = require('debug')('cfsnet:create:drive')
 
 async function createCFSDrive({
   key = null,
@@ -78,7 +78,7 @@ function wrap(drive) {
   ]
 
   const fs = {}
-  const fsdebug = require('debug')('littlstar:cfs:drive:fs')
+  const fsdebug = require('debug')('cfsnet:drive:fs')
 
   Object.assign(drive, methods.reduce((d, m) => {
     fs[m] = drive[m].bind(drive)

@@ -1,7 +1,7 @@
 'use strict'
 
 const { parse, resolve: resolveURL } = require('url')
-const debug = require('debug')('littlstar:cfs:agent')
+const debug = require('debug')('cfsnet:agent')
 const agent = require('superagent')
 
 const kHTTPProtocol = 'http:'
