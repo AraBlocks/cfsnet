@@ -38,7 +38,7 @@ class CFSRemote extends CFSNetworkAgent {
   }
 
   async sync(opts) {
-    return this.call('POST', 'sync', opts)
+    return this.call('PUT', 'sync', opts)
   }
 
   async status(opts) {
