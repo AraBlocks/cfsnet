@@ -191,9 +191,9 @@ async function createCFS({
   await createPartition('/var')
 
   const home = await partitions.create('/home', {
-    sparseMetadata, storage, sparse,
+    sparseMetadata, revision, storage, sparse,
     secretKey: drive.metadata.secretKey,
-    key: drive.metadata.key
+    key: drive.metadata.key,
   })
 
   Object.assign(drive, pify({
