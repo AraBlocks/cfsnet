@@ -29,38 +29,113 @@ const kMaxWebSocketConnectRetries = 5
 const kTopicLeaveOp = 'leave'
 const kTopicJoinOp = 'join'
 
+function createDiscoveryKeyAndId({
+  cfs = null,
+  partition = '',
+} = {}) {
+  const hash = crypto.hash(Buffer.concat([ cfs.identifier, cfs.key, Buffer.from(partition, 'utf8') ]))
+  const keyPair = crypto.generateKeyPair(Buffer.from(hash.slice(0, 64)))
+
+  const discoveryKey = crypto.generateDiscoveryKey(keyPair.publicKey)
+  const discoveryId = randombytes(32)
+
+  return { discoveryKey, discoveryId }
+}
+
+function createDiscoverySwarm({
+  maxConnections,
+  stream,
+  discoveryId,
+  dns,
+  dht,
+  discoveryKey,
+  port
+}) {
+  const swarm = discovery({
+    maxConnections, stream,
+    id: discoveryId, hash: false,
+    dns: {
+      ttl: dns.ttl || 30,
+      limit: dns.limit || 1000,
+      loopback: null != dns.loopback ? dns.loopback : false,
+      multicast: null != dns.multicast ? dns.multicast : true,
+      domain: dns.domain || 'cfs.local',
+      server: dns.server || [
+        '127.0.0.1',
+
+        // @TODO(werle): move these to `cfs-cli'
+        'cfa-alpha.us-east-1.littlstar.com',
+        'cfa-beta.us-east-1.littlstar.com',
+        'cfa-gamma.us-east-1.littlstar.com',
+        'dns.us-east-1.littlstar.com',
+      ],
+    },
+
+    dht: {
+      maxPeers: dht.maxPeers || 10000,
+      maxTables: dht.maxTables || 10000,
+      bootstrap: dht.bootstrap || [
+        { host: '127.0.0.1', port: 6881 },
+
+        // @TODO(werle): move these to `cfs-cli'
+        {host: 'dht.us-east-1.littlstar.com', port: 6881},
+        {host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881},
+        {host: 'cfa-beta.us-east-1.littlstar.com', port: 6881},
+        {host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881},
+      ],
+    }
+  })
+
+  swarm.join(discoveryKey.toString('hex'))
+  swarm.listen(port || 0, onlisten)
+
+  function onlisten(err) {
+    if (err) {
+      swarm.listen(0)
+    }
+  }
+
+  return swarm
+}
+
 /**
- * Creates a CFS discovery network swarm
+ * Creates a CFS discovery network swarm for specified partition
  *
  * @public
  * @param {?(Object)} opts
  * @param {?(Object)} opts.cfs
  * @param {?(Object)} opts.key
  * @param {?(Object)} opts.id
+ * @param {?(String)} opts.partition  Partition to create discovery swarm for
+ * @param {?(String)} opts.topic      Topic to announce join message
  * @param {?(Object)} opts.download
  * @param {?(Object)} opts.upload
  * @param {?(Object)} opts.dht
  * @param {?(Object)} opts.dns
+ *
  * @return {HyperDiscovery}
  */
+
 async function createCFSDiscoverySwarm({
-  cfs = null,
-  key = null,
-  id = null,
   maxConnections = 60,
   signalhub = null,
+  partition = 'home',
   download = true,
   upload = true,
+  topic = null,
   live = true,
   port = 0,
   wrtc = null, // optional WebRTC implementation for node
   dns = {},
   dht = {},
+  cfs = null,
+  key = null,
+  id = null,
   ws = { bootstrap: null, port: 0 },
 } = {}) {
-  id = id ? id : cfs ? cfs.identifier : null
-  key = key ? normalizeCFSKey(key) : cfs ? cfs.key.toString('hex') : null
-  cfs = cfs || await createCFS({id, key})
+  id = id || (cfs && cfs.identifier) || null
+  key = (key && normalizeCFSKey(key)) || (cfs && cfs.key.toString('hex')) || null
+  cfs = cfs || await createCFS({ id, key })
 
   if (!id) {
     debug("swarm: Waiting for identifier", cfs.identifier)
@@ -70,21 +145,19 @@ async function createCFSDiscoverySwarm({
   const ping = 'ws-ping'
   const ack = 'ws-ack'
 
-  const hash = crypto.hash(Buffer.concat([cfs.identifier, cfs.key]))
-  const keyPair = crypto.generateKeyPair(Buffer.from(hash.slice(0, 64)))
+  const { discoveryKey, discoveryId } = createDiscoveryKeyAndId({ cfs, partition })
 
-  const discoveryKey = crypto.generateDiscoveryKey(keyPair.publicKey)
-  const discoveryId = randombytes(32)
   const lock = { heartbeat: mutexify(), pingpong: mutexify() }
-  const topic = await createCFSSignalHub({discoveryKey: cfs.identifier})
+
+  const topic = await createCFSSignalHub({ discoveryKey: topic || cfs.identifier })
   const uid = discoveryId.toString('hex')
 
   let swarm = null
 
-  const hub = await createCFSSignalHub({discoveryKey})
+  const hub = await createCFSSignalHub({ discoveryKey })
   debug("topic: broadcast: %s", kTopicJoinOp)
 
-  try { topic.broadcast(kTopicJoinOp) }
+  try { topic.broadcast('home' != partition ? { discoveryKey, key } : kTopicJoinOp) }
   catch (err) { debug("topic: broadcast: error:", err) }
 
   cfs.once('close', onexit)
@@ -96,50 +169,14 @@ async function createCFSDiscoverySwarm({
   }
 
   if (false == isBrowser) {
-    swarm = discovery({
-      maxConnections, stream,
-      id: discoveryId, hash: false,
-
-      dns: {
-        ttl: dns.ttl || 30,
-        limit: dns.limit || 1000,
-        loopback: null != dns.loopback ? dns.loopback : false,
-        multicast: null != dns.multicast ? dns.multicast : true,
-        domain: dns.domain || 'cfs.local',
-        server: dns.server || [
-          '127.0.0.1',
-
-          // @TODO(werle): move these to `cfs-cli'
-          'cfa-alpha.us-east-1.littlstar.com',
-          'cfa-beta.us-east-1.littlstar.com',
-          'cfa-gamma.us-east-1.littlstar.com',
-          'dns.us-east-1.littlstar.com',
-        ],
-      },
-
-      dht: {
-        maxPeers: dht.maxPeers || 10000,
-        maxTables: dht.maxTables || 10000,
-        bootstrap: dht.bootstrap || [
-          {host: '127.0.0.1', port: 6881},
-
-          // @TODO(werle): move these to `cfs-cli'
-          {host: 'dht.us-east-1.littlstar.com', port: 6881},
-          {host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881},
-          {host: 'cfa-beta.us-east-1.littlstar.com', port: 6881},
-          {host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881},
-        ],
-      }
+    swarm = createDiscoverySwarm({
+      dns,
+      dht,
+      discoveryKey,
+      discoveryId,
+      stream: stream(partition),
+      port,
     })
-
-    swarm.join(discoveryKey)
-    swarm.listen(port || 0, onlisten)
-
-    function onlisten(err) {
-      if (err) {
-        swarm.listen(0)
-      }
-    }
   }
 
   if (null == swarm) {
@@ -152,7 +189,6 @@ async function createCFSDiscoverySwarm({
     })
   }
 
-  //if (0) {
   if (false !== ws) {
     if (false == isBrowser) {
       const wss = await createCFSWebSocketServer(ws)
@@ -160,7 +196,7 @@ async function createCFSDiscoverySwarm({
       wss.setMaxListeners(Infinity)
       swarm.on('close', () => wss.close())
       hub.subscribe(ping).on('data', async (req) => {
-        debug("me:", {id: uid})
+        debug("me:", { id: uid })
         debug("ping:", req)
         try {
           const address = ip.address()
@@ -179,7 +215,7 @@ async function createCFSDiscoverySwarm({
         const info = {port, address: 'websocket'}
         wsConnections.add(socket)
         swarm.emit('connection', socket, info)
-        socket.pipe(stream()).pipe(socket)
+        socket.pipe(stream(partition)()).pipe(socket)
         socket.once('error', (err) => {
           debug("wss: connection: socket: error:", err)
           swarm.emit('error', err)
@@ -299,7 +335,7 @@ async function createCFSDiscoverySwarm({
           connections.push(socket)
           swarm.emit('connection', socket, info)
           debug("socket: connect")
-          socket.pipe(stream()).pipe(socket)
+          socket.pipe(stream(partition)()).pipe(socket)
         })
 
         function cleanup() {
@@ -320,7 +356,7 @@ async function createCFSDiscoverySwarm({
     webrtcSwarm.on('peer', (peer, id) => {
       debug("webrtc: peer:", id)
       swarm.emit('connection', peer, {id})
-      peer.pipe(stream()).pipe(peer).on('error', (err) => {
+      peer.pipe(stream(partition)()).pipe(peer).on('error', (err) => {
         debug("webrtc: peer: replicate: error:", err)
       })
     })
@@ -330,6 +366,22 @@ async function createCFSDiscoverySwarm({
   swarm.on('error', onerror)
 
   return swarm
+
+  function stream(partition = 'home') {
+    return function ({
+      download,
+      upload,
+      live,
+    } = {}) {
+      return cfs.replicate(partition || 'home', {
+        download,
+        upload,
+        live,
+      }).on('error', (err) => {
+        swarm.emit('error', err)
+      })
+    }
+  }
 
   function pingpong() {
     let released = false
@@ -355,18 +407,8 @@ async function createCFSDiscoverySwarm({
   function onerror(err) {
     debug("error:", err)
   }
-
-  function stream() {
-    return cfs.replicate({
-      download,
-      upload,
-      live,
-    }).on('error', (err) => {
-      swarm.emit('error', err)
-    })
-  }
 }
 
 module.exports = {
-  createCFSDiscoverySwarm
+  createCFSDiscoverySwarm,
 }

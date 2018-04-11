@@ -449,20 +449,40 @@ async function createCFS({
       return partition.createWriteStream(filename, opts)
     },
 
-    history(opts) {
-      return partitions.home.history(opts)
+    history(name, opts) {
+      if ('object' == typeof name) {
+        opts = name || {}
+        name = 'home'
+      }
+
+      return partitions[name].history(opts)
     },
 
-    replicate(opts) {
-      return partitions.home.replicate(opts)
+    replicate(name, opts) {
+      if ('object' == typeof name) {
+        opts = name || {}
+        name = 'home'
+      }
+
+      return partitions[name].replicate(opts)
     },
 
-    update(cb) {
-      return partitions.home.metadata.update(cb)
+    update(name, cb) {
+      if ('function' == typeof name) {
+        cb = name
+        name = 'home'
+      }
+
+      return partitions[name].metadata.update(cb)
     },
 
-    ready(cb) {
-      return partitions.home.ready(cb)
+    ready(name, cb) {
+      if ('function' == typeof name) {
+        cb = name
+        name = 'home'
+      }
+
+      return partitions[name].ready(cb)
     },
 
     resolve(filename) {
