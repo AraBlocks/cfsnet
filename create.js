@@ -81,14 +81,12 @@ async function createCFS({
     debug("Creating CFS drive at path '%s' with key '%s'", path, key)
   }
 
-  // HyperDrive instance
-  const drive = await createCFSDrive({
-    key,
-    path,
-    storage,
-    secretKey,
-    sparseMetadata,
-  })
+  if (revision && 'number' == typeof revision) {
+    latest = false
+  }
+
+  // root HyperDrive instance
+  const drive = await createCFSDrive({ key, path, storage, secretKey, latest: true })
 
   // this needs to occur so a key can be generated
   debug("Ensuring CFS drive is ready")
@@ -97,22 +95,22 @@ async function createCFS({
   debug("Caching CFS drive in CFSMAP")
   drives[path] = drive
 
-  drive.identifier = id ? Buffer.from(id) : null
+  let identifier = id ? Buffer.from(id) : null
 
   Object.defineProperties(drive, Object.getOwnPropertyDescriptors({
+    get identifier() { return identifier },
     get partitions() { return partitions },
-    get root() { return core },
+    get root() { return root },
 
     get CFSID() { return kCFSIDFile },
     get HOME() {
-      const { identifier } = drive
       if (identifier) { return `/home` }
       else { return null }
     },
   }))
 
-  const core = {
-    [$name]: 'core',
+  const root = {
+    [$name]: 'root',
     resolve: identity,
 
     open: drive.open,
@@ -145,7 +143,7 @@ async function createCFS({
       const partitions = this
       const resolved = drive.resolve(filename)
       debug("partitions: resolve: %s -> %s", filename, resolved)
-      return parse(filename) || core
+      return parse(filename) || root
 
       function parse(filename) {
         if ('/' == filename[0]) {
@@ -169,8 +167,8 @@ async function createCFS({
         this[name][$name] = name
         // wait for partition to be ready
         await new Promise((resolve) => this[name].ready(resolve))
-        // ensure partition exists as child directory in core (root)
-        if (core.writable) { await pify(core.mkdirp)(name) }
+        // ensure partition exists as child directory in root (root)
+        if (root.writable) { await pify(root.mkdirp)(name) }
         Object.assign(this[name], {
           resolve(filename) {
             const regex = RegExp(`^/${name}`)
@@ -191,7 +189,7 @@ async function createCFS({
   await createPartition('/var')
 
   const home = await partitions.create('/home', {
-    sparseMetadata, revision, storage, sparse,
+    sparseMetadata, revision, storage, sparse, latest,
     secretKey: drive.metadata.secretKey,
     key: drive.metadata.key,
   })
@@ -199,7 +197,7 @@ async function createCFS({
   Object.assign(drive, pify({
     async open(filename, flags, mode, cb) {
       if ('function' == typeof filename || null == filename) {
-        return core.open(filename)
+        return root.open(filename)
       }
 
       if ('string' == typeof filename) {
@@ -264,7 +262,7 @@ async function createCFS({
           }
         }
 
-        batch.push((done) => core.close(done))
+        batch.push((done) => root.close(done))
         return batch.end(cb)
       }
 
@@ -501,8 +499,8 @@ async function createCFS({
   await createIdentifierFile()
   await createFileSystem()
 
-  if (drive.identifier) {
-    process.nextTick(() => onidentifier(drive.identifier))
+  if (identifier) {
+    process.nextTick(() => onidentifier(identifier))
   } else {
     await onupdate()
   }
@@ -513,20 +511,21 @@ async function createCFS({
     debug("onready")
   }
 
-  async function onidentifier(identifier) {
+  async function onidentifier(id) {
+    identifier = id
     debug("onidentifier:", identifier)
-    drive.emit('id', drive.identifier)
-    drive.emit('identifier', drive.identifier)
+    drive.emit('id', identifier)
+    drive.emit('identifier', identifier)
   }
 
   async function onupdate() {
     debug("onupdate")
     try {
       await pify(drive.access)(kCFSIDFile)
-      if (null == drive.identifier) {
-        drive.identifier = await pify(drive.readFile)(kCFSIDFile)
+      if (null == identifier) {
+        identifier = await pify(drive.readFile)(kCFSIDFile)
       }
-      onidentifier(drive.identifier)
+      onidentifier(identifier)
     } catch (err) {
       debug("onupdate: error:", err)
     }
@@ -583,7 +582,7 @@ async function createCFS({
 }
 
 /**
- * This function creates the core CFS directories. The directory structure is
+ * This function creates the root CFS directories. The directory structure is
  * very similar to a Linux filesystem, or FHS (Filesystem Hierarchy Standard).
  *
  * The following directories are supported:
