@@ -458,7 +458,7 @@ async function createCFS({
     },
 
     update(cb) {
-      return partitions.home.update(cb)
+      return partitions.home.metadata.update(cb)
     },
 
     ready(cb) {
