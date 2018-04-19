@@ -31,9 +31,13 @@ const kTopicJoinOp = 'join'
 
 function createDiscoveryKeyAndId({
   cfs = null,
-  partition = '',
+  partition = null,
 } = {}) {
-  const hash = crypto.hash(Buffer.concat([ cfs.identifier, cfs.key, Buffer.from(partition, 'utf8') ]))
+  let key = Buffer.concat([ cfs.identifier, cfs.key ])
+
+  if (null != partition) key.concat(Buffer.from(partition, 'utf8'))
+
+  const hash = crypto.hash(key)
   const keyPair = crypto.generateKeyPair(Buffer.from(hash.slice(0, 64)))
 
   const discoveryKey = crypto.generateDiscoveryKey(keyPair.publicKey)
@@ -122,7 +126,6 @@ async function createCFSDiscoverySwarm({
   partition = 'home',
   download = true,
   upload = true,
-  topic = null,
   live = true,
   port = 0,
   wrtc = null, // optional WebRTC implementation for node
@@ -149,24 +152,19 @@ async function createCFSDiscoverySwarm({
 
   const lock = { heartbeat: mutexify(), pingpong: mutexify() }
 
-  const topic = await createCFSSignalHub({ discoveryKey: topic || cfs.identifier })
+  if ('home' != partition) {
+    const topic = await createCFSSignalHub({ discoveryKey: partition })
+
+    debug("topic: broadcast: %s", discoveryKey)
+    try { topic.broadcast({ discoveryKey, key }) }
+    catch (err) { debug("topic: broadcast: error:", err) }
+  }
+
   const uid = discoveryId.toString('hex')
 
   let swarm = null
 
   const hub = await createCFSSignalHub({ discoveryKey })
-  debug("topic: broadcast: %s", kTopicJoinOp)
-
-  try { topic.broadcast('home' != partition ? { discoveryKey, key } : kTopicJoinOp) }
-  catch (err) { debug("topic: broadcast: error:", err) }
-
-  cfs.once('close', onexit)
-  process.once('beforeExit', onexit)
-
-  function onexit() {
-    try { topic.broadcast(kTopicLeaveOp) }
-    catch (err) { debug("topic: broadcast: error:", err) }
-  }
 
   if (false == isBrowser) {
     swarm = createDiscoverySwarm({
