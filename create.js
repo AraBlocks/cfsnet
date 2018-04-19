@@ -455,7 +455,7 @@ async function createCFS({
         name = 'home'
       }
 
-      return partitions[name].history(opts)
+      return partitions.resolve(name).history(opts)
     },
 
     replicate(name, opts) {
@@ -464,7 +464,7 @@ async function createCFS({
         name = 'home'
       }
 
-      return partitions[name].replicate(opts)
+      return partitions.resolve(name).replicate(opts)
     },
 
     update(name, cb) {
@@ -473,7 +473,7 @@ async function createCFS({
         name = 'home'
       }
 
-      return partitions[name].metadata.update(cb)
+      return partitions.resolve(name).metadata.update(cb)
     },
 
     ready(name, cb) {
@@ -482,7 +482,7 @@ async function createCFS({
         name = 'home'
       }
 
-      return partitions[name].ready(cb)
+      return partitions.resolve(name).ready(cb)
     },
 
     resolve(filename) {

@@ -35,7 +35,7 @@ function createDiscoveryKeyAndId({
 } = {}) {
   let key = Buffer.concat([ cfs.identifier, cfs.key ])
 
-  if (null != partition) key.concat(Buffer.from(partition, 'utf8'))
+  if (null != partition) key = key.concat(Buffer.from(partition, 'utf8'))
 
   const hash = crypto.hash(key)
   const keyPair = crypto.generateKeyPair(Buffer.from(hash.slice(0, 64)))
@@ -111,7 +111,6 @@ function createDiscoverySwarm({
  * @param {?(Object)} opts.key
  * @param {?(Object)} opts.id
  * @param {?(String)} opts.partition  Partition to create discovery swarm for
- * @param {?(String)} opts.topic      Topic to announce join message
  * @param {?(Object)} opts.download
  * @param {?(Object)} opts.upload
  * @param {?(Object)} opts.dht
