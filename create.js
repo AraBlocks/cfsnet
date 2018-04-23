@@ -143,7 +143,7 @@ async function createCFS({
       const partitions = this
       const resolved = drive.resolve(filename)
       debug("partitions: resolve: %s -> %s", filename, resolved)
-      return parse(filename) || root
+      return parse(resolved) || root
 
       function parse(filename) {
         if ('/' == filename[0]) {

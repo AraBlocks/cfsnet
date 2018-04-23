@@ -31,11 +31,11 @@ const kTopicJoinOp = 'join'
 
 function createDiscoveryKeyAndId({
   cfs = null,
-  partition = null,
+  partition = 'home',
 } = {}) {
   let key = Buffer.concat([ cfs.identifier, cfs.key ])
 
-  if (null != partition) key = key.concat(Buffer.from(partition, 'utf8'))
+  if ('home' != partition) key = key.concat(Buffer.from(partition, 'utf8'))
 
   const hash = crypto.hash(key)
   const keyPair = crypto.generateKeyPair(Buffer.from(hash.slice(0, 64)))
