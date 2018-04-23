@@ -78,10 +78,6 @@ class Protocol extends Duplex {
     }
   }
 
-  parse(message, cb) {
-    return this._parse(message, cb)
-  }
-
   nonce() {
     return Buffer.from(crypto.sha256(String(Math.random())))
   }
