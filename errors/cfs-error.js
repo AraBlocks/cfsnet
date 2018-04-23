@@ -8,18 +8,6 @@ class CFSError extends Error {
     this.message = message
     Error.captureStackTrace(this, this.constuctor)
   }
-
-  get code() { 
-    return this.code 
-  }
-
-  get name() {
-    return this.name
-  }
-
-  get message() {
-    return this.message
-  }
 }
 
 module.exports = {

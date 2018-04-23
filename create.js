@@ -86,7 +86,11 @@ async function createCFS({
   }
 
   // root HyperDrive instance
-  const drive = await createCFSDrive({ key, path, storage, secretKey, latest: true })
+  const drive = await createCFSDrive({
+    key, path, secretKey,
+    storage: ram,
+    latest: true,
+  })
 
   // this needs to occur so a key can be generated
   debug("Ensuring CFS drive is ready")
@@ -95,19 +99,8 @@ async function createCFS({
   debug("Caching CFS drive in CFSMAP")
   drives[path] = drive
 
+  const fileDescriptors = {}
   let identifier = id ? Buffer.from(id) : null
-
-  Object.defineProperties(drive, Object.getOwnPropertyDescriptors({
-    get identifier() { return identifier },
-    get partitions() { return partitions },
-    get root() { return root },
-
-    get CFSID() { return kCFSIDFile },
-    get HOME() {
-      if (identifier) { return `/home` }
-      else { return null }
-    },
-  }))
 
   const root = {
     [$name]: 'root',
@@ -136,7 +129,6 @@ async function createCFS({
     createWriteStream: drive.createWriteStream,
   }
 
-  const fileDescriptors = {}
   const partitions = Object.create({
 
     resolve(filename) {
@@ -183,6 +175,19 @@ async function createCFS({
     }
   })
 
+  Object.defineProperties(drive, Object.getOwnPropertyDescriptors({
+    get fileDescriptors() { return fileDescriptors },
+    get identifier() { return identifier },
+    get partitions() { return partitions },
+    get root() { return root },
+
+    get CFSID() { return kCFSIDFile },
+    get HOME() {
+      if (identifier) { return `/home` }
+      else { return null }
+    },
+  }))
+
   await createPartition('/etc')
   await createPartition('/lib')
   await createPartition('/tmp')
@@ -194,6 +199,7 @@ async function createCFS({
     key: drive.metadata.key,
   })
 
+  // root drive API
   Object.assign(drive, pify({
     async open(filename, flags, mode, cb) {
       if ('function' == typeof filename || null == filename) {
@@ -505,7 +511,7 @@ async function createCFS({
           return '.'
         }
         // $1 is matched group after optional tilde
-        filename = filename.replace(/^~\//, '')
+        filename = filename.replace(/^~\/?/, '')
 
         return filename
       }
