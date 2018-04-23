@@ -19,6 +19,7 @@ const Batch = require('batch')
 const debug = require('debug')('cfsnet:create')
 const tree = require('./tree')
 const pify = require('pify')
+const raf = require('random-access-file')
 const ram = require('random-access-memory')
 const ras = require('random-access-stream')
 const ms = require('ms')
@@ -27,6 +28,7 @@ const fs = require('fs')
 const kLogEventTimeout = ms('10m')
 const kEventLogFile = '/var/log/events'
 const kCFSIDFile = '/etc/cfs-id'
+
 const $name = Symbol('partition.name')
 
 const identity = (i) => i
@@ -88,8 +90,16 @@ async function createCFS({
   // root HyperDrive instance
   const drive = await createCFSDrive({
     key, path, secretKey,
-    storage: ram,
     latest: true,
+    storage(file, ...args) {
+      if (file.includes('content')) {
+        return ram()
+      } else if ('function' == typeof storage) {
+        return storage(file, ...args)
+      } else {
+        return raf(file)
+      }
+    }
   })
 
   // this needs to occur so a key can be generated
@@ -182,10 +192,8 @@ async function createCFS({
     get root() { return root },
 
     get CFSID() { return kCFSIDFile },
-    get HOME() {
-      if (identifier) { return `/home` }
-      else { return null }
-    },
+    get TMPDIR() { return '/tmp' },
+    get HOME() { return '/home' },
   }))
 
   await createPartition('/etc')
@@ -458,7 +466,7 @@ async function createCFS({
     history(name, opts) {
       if ('object' == typeof name) {
         opts = name || {}
-        name = 'home'
+        name = drive.HOME
       }
 
       return partitions.resolve(name).history(opts)
@@ -467,7 +475,7 @@ async function createCFS({
     replicate(name, opts) {
       if ('object' == typeof name) {
         opts = name || {}
-        name = 'home'
+        name = kHomePartition
       }
 
       return partitions.resolve(name).replicate(opts)
@@ -476,7 +484,7 @@ async function createCFS({
     update(name, cb) {
       if ('function' == typeof name) {
         cb = name
-        name = 'home'
+        name = drive.HOME
       }
 
       return partitions.resolve(name).metadata.update(cb)
@@ -485,7 +493,7 @@ async function createCFS({
     ready(name, cb) {
       if ('function' == typeof name) {
         cb = name
-        name = 'home'
+        name = drive.HOME
       }
 
       return partitions.resolve(name).ready(cb)
@@ -500,11 +508,7 @@ async function createCFS({
 
       debug("resolve: HOME=%s filename=%s", HOME, filename)
 
-      if (HOME) {
-        return resolve(HOME, parse(filename))
-      } else {
-        return filename
-      }
+      return resolve(HOME, parse(filename))
 
       function parse(filename) {
         if ('string' != typeof filename) {

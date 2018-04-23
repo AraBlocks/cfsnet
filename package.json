@@ -34,6 +34,7 @@
     "pump": "^3.0.0",
     "pumpcat": "^1.0.0",
     "pumpify": "^1.4.0",
+    "random-access-file": "^2.0.1",
     "random-access-memory": "^2.4.0",
     "random-access-s3": "^1.0.0",
     "random-access-stream": "^1.1.0",
