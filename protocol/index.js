@@ -16,6 +16,7 @@ const kProtocolOperations = Object.seal(Object.freeze({
   [messages.Operation.CloseOperation]: operations.Close,
   [messages.Operation.DownloadDirectoryOperation]: operations.DownloadDirectory,
   [messages.Operation.DownloadFileOperation]: operations.DownloadFile,
+  [messages.Operation.KeyPairOperation]: operations.KeyPair,
   [messages.Operation.ListDirectoryOperation]: operations.ListDirectory,
   [messages.Operation.MakeDirectoryOperation]: operations.MakeDirectory,
   [messages.Operation.MakeDirectoryPathOperation]: operations.MakeDirectoryPath,
@@ -97,12 +98,28 @@ class Protocol extends Duplex {
     const { drive, operation } = request
     const nonce = crypto.blake2b(request.nonce)
 
-    drive.secretKey = kZeroBuffer
     request.buffer = kZeroBuffer
 
-    const response = { nonce, drive, request, operation }
-    debug("reply: %s: %s: %s", opname(operation), toHex(nonce), errorCode)
-    Object.assign(response, { buffer, errorCode })
+    if (drive) {
+      drive.secretKey = kZeroBuffer
+      if (null == drive.id) { drive.id = kZeroBuffer }
+      if (null == drive.key) { drive.key = kZeroBuffer }
+    }
+
+    const response = {
+      operation,
+      errorCode,
+      request,
+      buffer,
+      nonce,
+      drive,
+    }
+
+    debug("reply: %s: %s: %s",
+      opname(operation),
+      toHex(nonce),
+      errorCode)
+
     this.push(messages.Response.encode(response))
   }
 
@@ -154,7 +171,7 @@ class Protocol extends Duplex {
   verify({nonce, key, ack}) {
     if (false !== ack && false == this.isClient) { return false }
     if (!nonce || 0 == nonce.length) { return false }
-    if (!key || kDriveKeyLength != key.length) { return false }
+    if (!key || 32 != key.length) { return false }
     const expected = crypto.blake2b(Buffer.concat([CFSNETKEY, nonce]))
     return 0 == Buffer.compare(expected, key)
   }
@@ -252,26 +269,17 @@ class Protocol extends Duplex {
       return onerror(BAD_REQUEST_OPERATION, "Invalid operation code")
     }
 
-    if (null == drive) {
-      return onerror(BAD_REQUEST_DRIVE, "Missing drive payload")
+    if (drive) {
+      if (drive.key && kDriveKeyLength != drive.key.length) {
+        return onerror(BAD_REQUEST_DRIVE_KEY_LENGTH, "Invalid key length")
+      }
+
+      debug("onrequest: %s: %s: drive:",
+        toHex(nonce),
+        opname(operation),
+         drive.id ? drive.id.toString() : null,
+         drive.key ? toHex(drive.key) : null)
     }
-
-    if (null == drive.id) {
-      return onerror(BAD_REQUEST_DRIVE_ID, "Missing drive ID")
-    }
-
-    if (null == drive.key) {
-      return onerror(BAD_REQUEST_DRIVE_KEY, "Missing drive key")
-    }
-
-    if (kDriveKeyLength != drive.key.length) {
-      return onerror(BAD_REQUEST_DRIVE_KEY_LENGTH, "Invalid key length")
-    }
-
-    debug("onrequest: %s: %s: drive:",
-      toHex(nonce), opname(operation), drive.id.toString(), toHex(drive.key))
-
-    this.emit('request', request)
 
     if ('number' != typeof operation) {
       return onerror(BAD_REQUEST_OPERATION,
@@ -281,6 +289,8 @@ class Protocol extends Duplex {
     if (Number.isNaN(operation)) {
       return onerror(BAD_REQUEST_OPERATION, "Invalid operation code (NaN)")
     }
+
+    this.emit('request', request)
 
     if (operation === messages.Operation.NoOperation) {
       return this.reply({request,
@@ -312,7 +322,7 @@ class Protocol extends Duplex {
 
   async onoperation(operation, request, message, cb) {
     const ops = kProtocolOperations
-    const cfs = await this.lookup(request.drive)
+    const cfs = request.drive ? await this.lookup(request.drive) : null
     const self = this
     const state = { request, operation, message, cfs }
 
