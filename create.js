@@ -530,6 +530,14 @@ async function createCFS({
   home.on('update', onupdate)
   home.on('content', onupdate)
 
+  proxy('update')
+  proxy('content')
+  proxy('download')
+  proxy('upload')
+  proxy('sync')
+  proxy('append')
+  proxy('error')
+
   await createIdentifierFile()
   await createFileSystem()
 
@@ -540,6 +548,10 @@ async function createCFS({
   }
 
   return drive
+
+  function proxy(event) {
+    home.on(event, (...args) => { drive.emit(event, ...args) })
+  }
 
   async function onready() {
     debug("onready")
