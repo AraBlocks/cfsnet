@@ -148,7 +148,10 @@ async function createCFS({
       return parse(resolved) || root
 
       function parse(filename) {
-        if ('/' == filename[0]) {
+        if (filename in partitions) {
+          debug("partitions: resolve: parse:", filename)
+          return partitions[filename]
+        } else if ('/' == filename[0]) {
           for (let i = 1; i < filename.length; ++i) {
             const slice = filename.slice(1, i + 1)
             if (slice in partitions) {
@@ -156,8 +159,9 @@ async function createCFS({
               return partitions[slice]
             }
           }
+        } else {
+          return null
         }
-        return null
       }
     },
 
