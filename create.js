@@ -91,13 +91,13 @@ async function createCFS({
   const drive = await createCFSDrive({
     key, path, secretKey,
     latest: true,
-    storage(file, ...args) {
+    storage(file, drive, path) {
       if (file.includes('content')) {
         return ram()
       } else if ('function' == typeof storage) {
-        return storage(file, ...args)
+        return storage(file, drive, path)
       } else {
-        return raf(file)
+        return raf(resolve(path, file))
       }
     }
   })
