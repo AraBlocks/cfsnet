@@ -473,6 +473,7 @@ async function createCFS({
         name = drive.HOME
       }
 
+      name = name || drive.HOME
       return partitions.resolve(name).history(opts)
     },
 
@@ -482,6 +483,7 @@ async function createCFS({
         name = kHomePartition
       }
 
+      name = name || drive.HOME
       return partitions.resolve(name).replicate(opts)
     },
 
@@ -491,6 +493,7 @@ async function createCFS({
         name = drive.HOME
       }
 
+      name = name || drive.HOME
       return partitions.resolve(name).metadata.update(cb)
     },
 
@@ -500,6 +503,7 @@ async function createCFS({
         name = drive.HOME
       }
 
+      name = name || drive.HOME
       return partitions.resolve(name).ready(cb)
     },
 
