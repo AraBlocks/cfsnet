@@ -480,7 +480,7 @@ async function createCFS({
     replicate(name, opts) {
       if ('object' == typeof name) {
         opts = name || {}
-        name = kHomePartition
+        name = drive.HOME
       }
 
       name = name || drive.HOME

@@ -48,6 +48,7 @@
     "streaming-json-stringify": "^3.1.0",
     "superagent": "^3.8.2",
     "through": "^2.3.8",
+    "to-buffer": "^1.1.1",
     "webrtc-swarm": "^2.9.0"
   },
   "devDependencies": {
