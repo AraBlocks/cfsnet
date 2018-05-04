@@ -1,6 +1,6 @@
 {
   "name": "cfsnet",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "The Conflict-Free File System Network is a distributed file system network for securely authoring and sharing files.",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,7 @@
     "discovery-swarm": "^5.1.1",
     "extend": "^3.0.1",
     "hash.js": "^1.1.3",
+    "hypercore": "^6.14.0",
     "hyperdiscovery": "^7.0.0",
     "hyperdrive": "^9.12.3",
     "ip": "^1.1.5",
@@ -49,7 +50,8 @@
     "superagent": "^3.8.2",
     "through": "^2.3.8",
     "to-buffer": "^1.1.1",
-    "webrtc-swarm": "^2.9.0"
+    "webrtc-swarm": "^2.9.0",
+    "ws": "^5.1.1"
   },
   "devDependencies": {
     "drag-and-drop-files": "0.0.1",
@@ -58,7 +60,6 @@
     "nanomorph": "^5.1.3",
     "random-access-file-reader": "^1.0.0",
     "shaka-player": "^2.3.4",
-    "videostream": "^2.4.2",
-    "wrtc": "0.0.67"
+    "videostream": "^2.4.2"
   }
 }
