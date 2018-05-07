@@ -1,6 +1,6 @@
 {
   "name": "cfsnet",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "The Conflict-Free File System Network is a distributed file system network for securely authoring and sharing files.",
   "main": "index.js",
   "scripts": {
