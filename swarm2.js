@@ -5,6 +5,7 @@ const randombytes = require('randombytes')
 const discovery = require('discovery-swarm')
 const isBrowser = require('is-browser')
 const toBuffer = require('to-buffer')
+const debug = require('debug')('cfsnet:swarm')
 const lucas = require('lucas-series')
 const Batch = require('batch')
 const ipify = require('ipify')
@@ -29,6 +30,15 @@ function toHex(v) {
     : toHex(Buffer.from(v, 'hex'))
 }
 
+function bootstrapify(host) {
+  if ('string' == typeof host) {
+    const parts = host.split(':')
+    return {host: parts[0], port: parts[1] || 6881}
+  } else {
+    return host
+  }
+}
+
 async function createCFSDiscoverySwarm({
   maxConnections = 16,
   stream = noop,
@@ -47,37 +57,28 @@ async function createCFSDiscoverySwarm({
     hash: false,
     tcp: isBrowser ? false : tcp,
     utp: isBrowser ? false : utp,
-    dns: false || isBrowser ? false : {
+    dns: isBrowser ? false : {
       ttl: dns.ttl || 30,
       limit: dns.limit || 1000,
       loopback: null != dns.loopback ? dns.loopback : false,
       multicast: null != dns.multicast ? dns.multicast : true,
       domain: dns.domain || 'cfs.local',
-      server: dns.server || [
-        '127.0.0.1',
-
-        // @TODO(werle): move these to `cfs-cli'
-        'cfa-alpha.us-east-1.littlstar.com',
-        'cfa-beta.us-east-1.littlstar.com',
-        'cfa-gamma.us-east-1.littlstar.com',
-        'dns.us-east-1.littlstar.com',
-      ],
+      server: dns.server || [ '127.0.0.1' ],
     },
 
-    dht: false || isBrowser ? false : {
+    dht: isBrowser ? false : {
       maxPeers: dht.maxPeers || 10000,
       maxTables: dht.maxTables || 10000,
-      bootstrap: dht.bootstrap || [
-        { host: '127.0.0.1', port: 6881 },
-
-        // @TODO(werle): move these to `cfs-cli'
-        {host: 'dht.us-east-1.littlstar.com', port: 6881},
-        {host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881},
-        {host: 'cfa-beta.us-east-1.littlstar.com', port: 6881},
-        {host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881},
-      ],
+      bootstrap: [ { host: '127.0.0.1', port: 6881 } ]
+      .concat(
+        Array.isArray(dht.bootstrap)
+        ? dht.bootstrap.map(bootstrapify)
+        : dht.bootstrap)
+      .filter(Boolean)
     }
   })
+
+  swarm.setMaxListeners(Infinity)
 
   if (false == isBrowser && (tcp || utp)) {
     await new Promise((resolve) => {
@@ -94,8 +95,10 @@ async function createCFSDiscoverySwarm({
 
   let wss = null
   if (false !== ws) {
-    wss = await createCFSWebSocketServer(Object.assign({}, ws, {server: swarm._tcp || null, port: null}))
     //wss = await createCFSWebSocketServer(ws)
+    wss = await createCFSWebSocketServer(Object.assign({}, ws, {
+      server: swarm._tcp || null, port: null
+    }))
     wss.connections = Connections(wss)
     wss.setMaxListeners(Infinity)
     swarm.on('close', () => wss.close())
@@ -135,9 +138,10 @@ async function createCFSDiscoverySwarm({
   }
 
   const _join = swarm.join.bind(swarm)
+  const _leave = swarm.leave.bind(swarm)
 
   return Object.assign(swarm, {
-    join
+    join, leave
   })
 
   function join(name, opts, cb) {
@@ -237,7 +241,15 @@ async function createCFSDiscoverySwarm({
 
     return batch.end((err) => {
       if (err) { return (cb || noop)(err) }
+      debug("join: %s", toHex(name), opts)
+      swarm.emit('join', name)
     })
+  }
+
+  function leave(name) {
+    debug("leave: %s", toHex(name))
+    swarm.emit('leave', name)
+    return _leave(name)
   }
 
   function signalify({
