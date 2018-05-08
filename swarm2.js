@@ -40,14 +40,14 @@ function bootstrapify(host) {
 }
 
 async function createCFSDiscoverySwarm({
-  maxConnections = 16,
+  maxConnections = 64,
   stream = noop,
   port = kCFSDiscoverySwarmPort,
   dns = {},
   dht = {},
   tcp = true,
   utp = true,
-  ws = { bootstrap: null, port: 0 }
+  ws = { port: kCFSDiscoverySwarmWebSocketPort }
 }) {
   const id = randombytes(32)
   const hubs = {}
@@ -95,10 +95,8 @@ async function createCFSDiscoverySwarm({
 
   let wss = null
   if (false !== ws) {
-    //wss = await createCFSWebSocketServer(ws)
-    wss = await createCFSWebSocketServer(Object.assign({}, ws, {
-      server: swarm._tcp || null, port: null
-    }))
+    wss = await createCFSWebSocketServer(ws)
+    //wss = await createCFSWebSocketServer(Object.assign({}, ws, { server: swarm._tcp || null, port: null }))
     wss.connections = Connections(wss)
     wss.setMaxListeners(Infinity)
     swarm.on('close', () => wss.close())
