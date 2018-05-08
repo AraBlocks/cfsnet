@@ -183,6 +183,8 @@ async function createCFS({
             return resolved
           }
         })
+
+        drive.emit('partition', this[name], name)
       }
 
       return this[name]
@@ -198,6 +200,9 @@ async function createCFS({
     get CFSID() { return kCFSIDFile },
     get TMPDIR() { return '/tmp' },
     get HOME() { return '/home' },
+    get LIB() { return '/lib' },
+    get ETC() { return '/etc' },
+    get VAR() { return '/var' },
   }))
 
   await createPartition('/etc')
