@@ -19,7 +19,7 @@ const {
   createCFSWebSocket,
 } = require('./ws')
 
-const kCFSDiscoverySwarmWebSocketPort = 6888
+const kCFSDiscoverySwarmWebSocketPort = 0
 const kCFSDiscoverySwarmPort = 6889
 const kLucasRetries = [ ...lucas(0, 4) ].map((i) => i*1000)
 
@@ -95,7 +95,13 @@ async function createCFSDiscoverySwarm({
 
   let wss = null
   if (false !== ws) {
-    wss = await createCFSWebSocketServer(ws)
+
+
+
+    try { wss = await createCFSWebSocketServer(ws) }
+    catch (err) {
+      wss = await createCFSWebSocketServer(Object.assign({}, ws, {port: 0}))
+    }
     //wss = await createCFSWebSocketServer(Object.assign({}, ws, { server: swarm._tcp || null, port: null }))
     wss.connections = Connections(wss)
     wss.setMaxListeners(Infinity)
