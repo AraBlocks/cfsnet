@@ -40,7 +40,7 @@ function bootstrapify(host) {
 }
 
 async function createCFSDiscoverySwarm({
-  maxConnections = 64,
+  maxConnections = 0,
   stream = noop,
   port = kCFSDiscoverySwarmPort,
   dns = {},
