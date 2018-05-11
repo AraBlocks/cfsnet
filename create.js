@@ -57,7 +57,7 @@ async function createCFS({
   id = null,
   key = null,
   path = null,
-  latest = true,
+  latest = false,
   sparse = false,
   storage = null,
   revision = null,
