@@ -95,9 +95,6 @@ async function createCFSDiscoverySwarm({
 
   let wss = null
   if (false !== ws) {
-
-
-
     try { wss = await createCFSWebSocketServer(ws) }
     catch (err) {
       wss = await createCFSWebSocketServer(Object.assign({}, ws, {port: 0}))
@@ -204,9 +201,9 @@ async function createCFSDiscoverySwarm({
 
       async function kick() {
         let socket = null
-        try { socket = await pify(connect)(hostify(signal, 'remoteAddress')) }
+        try { socket = await pify(connect)(signal.remoteAddress, signal.port) }
         catch (err) {
-          try { socket = await pify(connect)(hostify(signal, 'localAddress')) }
+          try { socket = await pify(connect)(signal.localAddress, signal.port) }
           catch (err) {
             const retry = kLucasRetries[signal.retries++]
             if ('number' == typeof retry) {
@@ -223,11 +220,8 @@ async function createCFSDiscoverySwarm({
         }
       }
 
-      function hostify(signal, which) {
-        return `ws://${signal[which]}:${signal.port}`
-      }
-
-      function connect(host, cb) {
+      function connect(host, port, cb) {
+        host = `ws://${host}:${port}`
         const socket = createCFSWebSocket({host,
           headers: {
             'x-discovery-key': toHex(name),
@@ -292,6 +286,7 @@ async function createCFSDiscoverySwarm({
   }
 
   function ban(signal) {
+    clearTimeout(signal.timeout)
     signal = signalify(signal)
     forget(signal)
     banned[signal.remoteAddress+':'+signal.port] = signal
@@ -299,6 +294,13 @@ async function createCFSDiscoverySwarm({
     banned[signal.remoteAddress+signal.port] = signal
     banned[signal.localAddress+signal.port] = signal
     banned[signal.id] = signal
+    signal.timeout = setTimeout(() => {
+      delete banned[signal.remoteAddress+':'+signal.port]
+      delete banned[signal.localAddress+':'+signal.port]
+      delete banned[signal.remoteAddress+signal.port]
+      delete banned[signal.localAddress+signal.port]
+      delete banned[signal.id]
+    }, 10000)
     return signal
   }
 }
