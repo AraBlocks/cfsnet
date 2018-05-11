@@ -20,7 +20,7 @@ const {
 } = require('./ws')
 
 const kCFSDiscoverySwarmWebSocketPort = 0
-const kCFSDiscoverySwarmPort = 6889
+const kCFSDiscoverySwarmPort = 0
 const kLucasRetries = [ ...lucas(0, 4) ].map((i) => i*1000)
 
 function noop() {}
