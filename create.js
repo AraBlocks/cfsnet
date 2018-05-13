@@ -173,6 +173,7 @@ async function createCFS({
         this[name][$name] = name
         // wait for partition to be ready
         await new Promise((resolve) => this[name].ready(resolve))
+        await pify(this[name].mkdirp.bind(this[name]))('/')
         // ensure partition exists as child directory in root (root)
         if (root.writable) { await pify(root.mkdirp)(name) }
         Object.assign(this[name], {
