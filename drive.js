@@ -36,7 +36,7 @@ async function createCFSDrive({
 
   debug("Initializing CFS HyperDrive instance at '%s' with key '%s'",
     storage ? '<random access>' : path,
-    (drive.key || Buffer(0)).toString('hex'))
+    (drive.key || Buffer.from(0)).toString('hex'))
 
   return wrap(drive)
 
@@ -65,7 +65,9 @@ function wrap(drive) {
     'mkdir',
     'readdir',
 
+    'ready',
     'access',
+    'history',
     'checkout',
     'download',
 
@@ -91,23 +93,38 @@ function wrap(drive) {
   }, {}))
 
   // monkey patch to throw correct fs error
-  const { rmdir, checkout } = drive
-  drive.rmdir = (dir, cb) => {
-    rmdir(dir, (err) => {
-      if (err) {
-        if (err.message.toLowerCase().match(/directory is not empty/)) {
-          return cb(Object.assign(new Error('ENOTEMPTY'), {code: 'ENOTEMPTY'}))
-        }
-      }
-      cb(err)
-    })
-  }
-
-
+  const { mkdir, rmdir, checkout } = drive
   // extra useful methods
   Object.assign(drive, {
-    mkdirp(dir, cb) { return mkdirp(dir, {fs: drive}, cb) },
-    rimraf(dir, cb) { return rimraf(dir, drive, cb) },
+    rmdir(dir, cb) {
+      rmdir(dir, (err) => {
+        if (err) {
+          if (err.message.toLowerCase().match(/directory is not empty/)) {
+            return cb(Object.assign(new Error('ENOTEMPTY'), {code: 'ENOTEMPTY'}))
+          }
+        }
+        cb(err)
+      })
+    },
+
+    mkdir(dir, opts, cb) {
+      if ('function' == typeof opts) {
+        cb = opts
+        opts = {}
+      }
+      return mkdir(dir, opts, cb)
+    },
+
+    // mkdir -p
+    mkdirp(dir, cb) {
+      return mkdirp(dir, {fs: drive}, cb)
+    },
+
+    // rm -rf
+    rimraf(dir, cb) {
+      return rimraf(dir, drive, cb)
+    },
+
     touch(path, cb) {
       drive.access(path, (err) => {
         // does not exist
