@@ -104,7 +104,21 @@ async function createCFS({
 
   // this needs to occur so a key can be generated
   debug("Ensuring CFS drive is ready")
-  await new Promise((resolve) => drive.ready(resolve))
+  await pify(drive.ready)()
+  // this ensures "root" directory actually has a "Stat" in
+  // its metatdata
+  if (drive.writable) {
+    try {
+      await pify(drive.access)('/')
+      const { mtime, ctime } = await pify(drive.stat)('/')
+      if (0 == Number(mtime) || 0 == Number(ctime)) {
+        // just throw something to switch to `catch' context
+        throw null
+      }
+    } catch (err) {
+      await pify(drive.mkdir)('/')
+    }
+  }
 
   debug("Caching CFS drive in CFSMAP")
   drives[path] = drive
@@ -115,6 +129,7 @@ async function createCFS({
   const root = {
     [$name]: 'root',
     resolve: identity,
+    history: drive.history,
 
     open: drive.open,
     stat: drive.stat,
@@ -126,6 +141,7 @@ async function createCFS({
     touch: drive.touch,
     rimraf: drive.rimraf,
     unlink: drive.unlink,
+    mkdir: drive.mkdir,
     mkdirp: drive.mkdirp,
     readdir: drive.readdir,
 
@@ -145,7 +161,8 @@ async function createCFS({
       const partitions = this
       const resolved = drive.resolve(filename)
       debug("partitions: resolve: %s -> %s", filename, resolved)
-      return parse(resolved) || root
+      if ('/' == resolved) { return root }
+      else { return parse(resolved) || root }
 
       function parse(filename) {
         if (filename in partitions) {
@@ -169,14 +186,30 @@ async function createCFS({
       name = name.replace(/^\//, '')
       if (false == name in this) {
         Object.assign(opts, {path: resolve(path, name)})
-        this[name] = await createCFSDrive(opts)
+        const partition = await createCFSDrive(opts)
+        this[name] = partition
         this[name][$name] = name
+
         // wait for partition to be ready
-        await new Promise((resolve) => this[name].ready(resolve))
-        await pify(this[name].mkdirp.bind(this[name]))('/')
+        await new Promise((resolve) => partition.ready(resolve))
+
+        // ensure partition has root access
+        try {
+          await pify(partition.access)('/')
+          const { mtime, ctime } = await pify(partition.stat)('/')
+          if (0 == Number(mtime) || 0 == Number(ctime)) {
+            // just throw something to switch to `catch' context
+            throw null
+          }
+        } catch (err) {
+          await pify(partition.mkdir)('/')
+        }
+
         // ensure partition exists as child directory in root (root)
-        if (root.writable) { await pify(root.mkdirp)(name) }
-        Object.assign(this[name], {
+        try { await pify(root.access)(resolve('/', name)) }
+        catch (err) { await pify(root.mkdirp)(resolve('/', name)) }
+
+        Object.assign(partition, {
           resolve(filename) {
             const regex = RegExp(`^/${name}`)
             const resolved = filename.replace(regex, '')
@@ -199,19 +232,20 @@ async function createCFS({
     get root() { return root },
 
     get CFSID() { return kCFSIDFile },
-    get TMPDIR() { return '/tmp' },
+    get TMPDIR() { return this.TMP },
     get HOME() { return '/home' },
     get LIB() { return '/lib' },
     get ETC() { return '/etc' },
     get VAR() { return '/var' },
+    get TMP() { return '/tmp' }
   }))
 
-  await createPartition('/etc')
-  await createPartition('/lib')
-  await createPartition('/tmp')
-  await createPartition('/var')
+  await createPartition(drive.ETC)
+  await createPartition(drive.LIB)
+  await createPartition(drive.TMP)
+  await createPartition(drive.VAR)
 
-  const home = await partitions.create('/home', {
+  const home = await partitions.create(drive.HOME, {
     sparseMetadata, revision, storage, sparse, latest,
     secretKey: drive.metadata.secretKey,
     key: drive.metadata.key,
@@ -258,16 +292,24 @@ async function createCFS({
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       debug("partition: %s: stat: %s", partition[$name], filename)
-      filename = partition.resolve(filename)
-      return partition.stat(filename, cb)
+      if (filename.slice(1) in partitions) {
+        return root.stat(filename, cb)
+      } else {
+        filename = partition.resolve(filename)
+        return partition.stat(filename, cb)
+      }
     },
 
     async lstat(filename, cb) {
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
-      filename = partition.resolve(filename)
       debug("partition: %s: lstat: %s", partition[$name], filename)
-      return partition.lstat(filename, cb)
+      if (filename.slice(1) in partitions) {
+        return root.lstat(filename, cb)
+      } else {
+        filename = partition.resolve(filename)
+        return partition.lstat(filename, cb)
+      }
     },
 
     async close(fd, cb) {
@@ -344,6 +386,14 @@ async function createCFS({
       filename = partition.resolve(filename)
       debug("partition: %s: unlink: %s", partition[$name], filename)
       return partition.unlink(filename, cb)
+    },
+
+    async mkdir(filename, cb) {
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+      debug("partition: %s: mkdir: %s", partition[$name], filename)
+      return partition.mkdir(filename, cb)
     },
 
     async mkdirp(filename, cb) {
