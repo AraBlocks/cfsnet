@@ -99,7 +99,7 @@ async function createCFSDiscoverySwarm({
     catch (err) {
       wss = await createCFSWebSocketServer(Object.assign({}, ws, {port: 0}))
     }
-    //wss = await createCFSWebSocketServer(Object.assign({}, ws, { server: swarm._tcp || null, port: null }))
+
     wss.connections = Connections(wss)
     wss.setMaxListeners(Infinity)
     swarm.on('close', () => wss.close())
