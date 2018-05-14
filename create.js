@@ -116,7 +116,8 @@ async function createCFS({
         throw null
       }
     } catch (err) {
-      await pify(drive.mkdir)('/')
+      try { await pify(drive.mkdir)('/') }
+      catch (err) { debug(err) }
     }
   }
 
@@ -202,12 +203,19 @@ async function createCFS({
             throw null
           }
         } catch (err) {
-          await pify(partition.mkdir)('/')
+          if (partition.writable) {
+            try { await pify(partition.mkdir)('/') }
+            catch (err) { debug(err) }
+          }
         }
 
         // ensure partition exists as child directory in root (root)
         try { await pify(root.access)(resolve('/', name)) }
-        catch (err) { await pify(root.mkdirp)(resolve('/', name)) }
+        catch (err) {
+          if (drive.writable) {
+            await pify(root.mkdirp)(resolve('/', name))
+          }
+        }
 
         Object.assign(partition, {
           resolve(filename) {
