@@ -9,6 +9,7 @@ const debug = require('debug')('cfsnet:swarm')
 const lucas = require('lucas-series')
 const Batch = require('batch')
 const ipify = require('ipify')
+const turbo = require('turbo-net')
 const pify = require('pify')
 const ip = require('ip')
 
@@ -19,8 +20,8 @@ const {
   createCFSWebSocket,
 } = require('./ws')
 
-const kCFSDiscoverySwarmWebSocketPort = 0
-const kCFSDiscoverySwarmPort = 0
+const kCFSDiscoverySwarmWebSocketPort = 6888
+const kCFSDiscoverySwarmPort = 6889
 const kLucasRetries = [ ...lucas(0, 4) ].map((i) => i*1000)
 
 function noop() {}
@@ -95,12 +96,21 @@ async function createCFSDiscoverySwarm({
 
   let wss = null
   if (false !== ws) {
-    try { wss = await createCFSWebSocketServer(ws) }
-    catch (err) {
-      wss = await createCFSWebSocketServer(Object.assign({}, ws, {port: 0}))
-    }
+    try {
+      void await async function init(port) {
+        debug("ws: init: port=%s", port)
+        const server = turbo.createServer()
+        server.listen(port, (err) => {
+          server.on('error', (err) => { swarm.emit('error', err) })
+        })
+        wss = await createCFSWebSocketServer({server})
+        wss.connections = Connections(wss)
+        wss.on('error', (err) =>  {
+          if (err && 'EADDRINUSE' == err.code) { init(0) }
+        })
+      }((ws || {}).port || 0)
+    } catch (err) { }
 
-    wss.connections = Connections(wss)
     wss.setMaxListeners(Infinity)
     swarm.on('close', () => wss.close())
     wss._server.on('connection', (socket, req) => {
@@ -201,9 +211,9 @@ async function createCFSDiscoverySwarm({
 
       async function kick() {
         let socket = null
-        try { socket = await pify(connect)(signal.remoteAddress, signal.port) }
+        try { socket = await pify(connect)(signal.localAddress, signal.port) }
         catch (err) {
-          try { socket = await pify(connect)(signal.localAddress, signal.port) }
+          try { socket = await pify(connect)(signal.remoteAddress, signal.port) }
           catch (err) {
             const retry = kLucasRetries[signal.retries++]
             if ('number' == typeof retry) {
