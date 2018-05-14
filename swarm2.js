@@ -162,12 +162,16 @@ async function createCFSDiscoverySwarm({
       opts = {}
     }
 
+    opts = opts || {}
+
     if ('string' == typeof name) {
       name = toBuffer(name)
     }
 
     if (false == isBrowser && (tcp || utp) && (dht || dns)) {
-      batch.push((done) => _join(name, opts, done))
+      batch.push((done) => {
+        _join(name, opts, done)
+      })
     }
 
     if (false == name in hubs) {
@@ -248,7 +252,10 @@ async function createCFSDiscoverySwarm({
     })
 
     return batch.end((err) => {
-      if (err) { return (cb || noop)(err) }
+      if (err) {
+        swarm.emit('error', err)
+        return (cb || noop)(err)
+      }
       debug("join: %s", toHex(name), opts)
       swarm.emit('join', name)
     })
