@@ -4,6 +4,7 @@ const { normalizeCFSKey } = require('./key')
 const hyperdrive = require('hyperdrive')
 const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
+const rmdir = require('rmdir')
 const debug = require('debug')('cfsnet:create:drive')
 
 async function createCFSDrive({
