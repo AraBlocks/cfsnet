@@ -353,12 +353,20 @@ async function createCFS({
     },
 
     async read(fd, ...args) {
-      if (!fd || fd <= 0) {
-        throw new Error("NotOpened")
+      let cb
+      if ('function' == typeof fd) {
+        cb = fd
+        fd = -1
+      } else {
+        cb = args.slice(-1)[0]
+      }
+
+      if (!fd || fd <= 0 || 'function' == typeof fd) {
+        return cb(new Error("NotOpened"))
       } else {
         const partition = fileDescriptors[fd]
         if (!partition) {
-          throw new Error("NotOpened")
+          return cb(new Error("NotOpened"))
         }
         return partition.read(fd, ...args)
       }
