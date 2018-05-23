@@ -13,7 +13,6 @@ test.before(async t => {
 test('gets var partition', t => {
   const partition = cfs.partitions.resolve('/var')
 
-
   t.is(partition.key.toString('hex'), cfs.partitions.var.key.toString('hex'))
 })
 

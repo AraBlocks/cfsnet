@@ -16,8 +16,6 @@ test('W_OK access fails when CFS closed', async t => {
     path: `./.cfses/${Math.random()}`
   })
 
-  cfs.partitions.home.metadata.writable = false
-
   try {
     await cfs.access('test', constants.W_OK)
     t.fail()
@@ -65,7 +63,6 @@ test('W_OK access passes', async t => {
     await cfs.access('/var', constants.W_OK)
     t.pass()
   } catch (e) {
-    console.log("FAIL:", e)
     t.fail()
   }
 })

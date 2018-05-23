@@ -26,7 +26,6 @@ test('lstat is called without errors', async t => {
   try {
     await cfs.lstat('test')
   } catch (e) {
-    console.log("EE:", e)
     t.fail(e)
   }
 })

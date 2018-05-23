@@ -26,7 +26,6 @@ test('stat is called without errors', async t => {
   try {
     await cfs.stat('test')
   } catch (e) {
-    console.log("EE:", e)
     t.fail(e)
   }
 })
