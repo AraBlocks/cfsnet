@@ -1,5 +1,3 @@
-const { existsSync } = require('fs')
-const constants = require('../../constants')
 const { createCFS } = require('../../create')
 const { test } = require('ava')
 const rimraf = require('rimraf')
@@ -11,12 +9,21 @@ test.cb.after(t => {
   rimraf('.cfses', t.end)
 })
 
-test('read stream is created', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
+const sandbox = sinon.createSandbox()
 
-  sinon.stub(cfs.partitions.home, 'createReadStream').callsFake((fileName) => {
+let cfs
+test.before(async t => {
+  cfs = await createCFS({
+    path: `./.cfses`
+  })
+})
+
+test.beforeEach(t => {
+  sandbox.restore()
+})
+
+test.serial('read stream is created', async t => {
+  sandbox.stub(cfs.partitions.home, 'createReadStream').callsFake((fileName) => {
     t.is(fileName, '/test')
   })
 

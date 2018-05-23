@@ -1,6 +1,5 @@
-const { existsSync } = require('fs')
-const constants = require('../../constants')
 const { createCFS } = require('../../create')
+const constants = require('../../constants')
 const { test } = require('ava')
 const rimraf = require('rimraf')
 const sinon = require('sinon')
@@ -8,14 +7,26 @@ const sinon = require('sinon')
 test.cb.after(t => {
   t.plan(0)
 
-  rimraf('./.cfses', t.end)
+  rimraf('.cfses', t.end)
 })
 
-test('W_OK access fails when CFS closed', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
+const sandbox = sinon.createSandbox()
 
+let cfs
+test.before(async t => {
+  cfs = await createCFS({
+    path: `./.cfses`
+  })
+})
+
+test.beforeEach(t => {
+  cfs.partitions.home.metadata.writable = true
+  cfs.partitions.home.metadata.readable = true
+
+  sandbox.restore()
+})
+
+test.serial('W_OK access fails when CFS closed', async t => {
   try {
     await cfs.access('test', constants.W_OK)
     t.fail()
@@ -24,11 +35,7 @@ test('W_OK access fails when CFS closed', async t => {
   }
 })
 
-test('R_OK access fails when CFS closed', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
+test.serial('R_OK access fails when CFS closed', async t => {
   cfs.partitions.home.metadata.readable = false
 
   try {
@@ -39,11 +46,7 @@ test('R_OK access fails when CFS closed', async t => {
   }
 })
 
-test('F_OK access fails when CFS closed', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
+test.serial('F_OK access fails when CFS closed', async t => {
   cfs.partitions.home.metadata.writable = false
 
   try {
@@ -55,10 +58,6 @@ test('F_OK access fails when CFS closed', async t => {
 })
 
 test('W_OK access passes', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
   try {
     await cfs.access('/var', constants.W_OK)
     t.pass()
@@ -68,10 +67,6 @@ test('W_OK access passes', async t => {
 })
 
 test('R_OK access passes', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
   try {
     await cfs.access('/var', constants.R_OK)
     t.pass()
@@ -81,10 +76,6 @@ test('R_OK access passes', async t => {
 })
 
 test('F_OK access passes', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
   try {
     await cfs.access('/var', constants.F_OK)
     t.pass()
@@ -93,11 +84,7 @@ test('F_OK access passes', async t => {
   }
 })
 
-test('F_OK access implicitly checked', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
+test.serial('F_OK access implicitly checked', async t => {
   const spy = sinon.spy(cfs.partitions.var, 'access')
 
   try {

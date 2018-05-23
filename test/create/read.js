@@ -1,5 +1,3 @@
-const { existsSync } = require('fs')
-const constants = require('../../constants')
 const { createCFS } = require('../../create')
 const { test } = require('ava')
 const rimraf = require('rimraf')
@@ -11,16 +9,26 @@ test.cb.after(t => {
   rimraf('.cfses', t.end)
 })
 
-test('read is called without errors', async t => {
-  t.plan(1)
+const sandbox = sinon.createSandbox()
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
+let cfs
+test.before(async t => {
+  cfs = await createCFS({
+    path: `./.cfses`
   })
+})
+
+test.beforeEach(t => {
+  cfs.fileDescriptors[20] = null
+  sandbox.restore()
+})
+
+test.serial('read is called without errors', async t => {
+  t.plan(1)
 
   cfs.fileDescriptors[20] = cfs.partitions.home
 
-  sinon.stub(cfs.partitions.home, 'read').callsFake((_, cb) => {
+  sandbox.stub(cfs.partitions.home, 'read').callsFake((_, cb) => {
     cb()
   })
 
@@ -35,10 +43,6 @@ test('read is called without errors', async t => {
 test('read fails with no fd', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
   try {
     await cfs.read()
     t.fail('read when it should have thrown an error')
@@ -49,10 +53,6 @@ test('read fails with no fd', async t => {
 
 test('read fails with negative fd', async t => {
   t.plan(1)
-
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
 
   try {
     await cfs.read(-1, {})

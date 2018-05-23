@@ -1,5 +1,3 @@
-const { existsSync } = require('fs')
-const constants = require('../../constants')
 const { createCFS } = require('../../create')
 const { test } = require('ava')
 const rimraf = require('rimraf')
@@ -11,14 +9,23 @@ test.cb.after(t => {
   rimraf('.cfses', t.end)
 })
 
+const sandbox = sinon.createSandbox()
+
+let cfs
+test.before(async t => {
+  cfs = await createCFS({
+    path: `./.cfses`
+  })
+})
+
+test.beforeEach(t => {
+  sandbox.restore()
+})
+
 test.serial('open is called without errors', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
-  sinon.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
+  sandbox.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
     t.pass()
     cb(null, 20)
   })
@@ -33,11 +40,7 @@ test.serial('open is called without errors', async t => {
 test.serial('open is called without errors - flags', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
-  sinon.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
+  sandbox.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
     t.pass()
     cb(null, 20)
   })
@@ -52,11 +55,7 @@ test.serial('open is called without errors - flags', async t => {
 test.serial('open is called without errors - mode', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
-  sinon.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
+  sandbox.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
     t.pass()
     cb(null, 20)
   })
@@ -71,11 +70,7 @@ test.serial('open is called without errors - mode', async t => {
 test.serial('open is called with cb', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
-  sinon.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
+  sandbox.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
     cb(null, 20)
   })
 

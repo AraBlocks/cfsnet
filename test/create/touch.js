@@ -1,5 +1,3 @@
-const { existsSync } = require('fs')
-const constants = require('../../constants')
 const { createCFS } = require('../../create')
 const { test } = require('ava')
 const rimraf = require('rimraf')
@@ -11,14 +9,23 @@ test.cb.after(t => {
   rimraf('.cfses', t.end)
 })
 
+const sandbox = sinon.createSandbox()
+
+let cfs
+test.before(async t => {
+  cfs = await createCFS({
+    path: `./.cfses`
+  })
+})
+
+test.beforeEach(t => {
+  sandbox.restore()
+})
+
 test('touch is called without errors', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
-  sinon.stub(cfs.partitions.home, 'touch').callsFake((_, cb) => {
+  sandbox.stub(cfs.partitions.home, 'touch').callsFake((_, cb) => {
     t.pass()
     cb()
   })
@@ -33,11 +40,7 @@ test('touch is called without errors', async t => {
 test('touch is called with cb', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
-  sinon.stub(cfs.partitions.home, 'touch').callsFake((_, cb) => {
+  sandbox.stub(cfs.partitions.home, 'touch').callsFake((_, cb) => {
     cb()
   })
 

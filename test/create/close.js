@@ -1,8 +1,6 @@
-const { existsSync } = require('fs')
 const { createCFS } = require('../../create')
 const { test } = require('ava')
 const rimraf = require('rimraf')
-const pify = require('pify')
 const sinon = require('sinon')
 
 test.cb.after(t => {
@@ -11,14 +9,24 @@ test.cb.after(t => {
   rimraf('.cfses', t.end)
 })
 
-test('successfully closes cfs', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
+const sandbox = sinon.createSandbox()
 
+let cfs
+test.before(async t => {
+  cfs = await createCFS({
+    path: `./.cfses`
+  })
+})
+
+test.beforeEach(t => {
+  cfs.fileDescriptors['20'] = null
+  sandbox.restore()
+})
+
+test.serial('successfully closes cfs', async t => {
   // Stub the partition close
   Object.values(cfs.partitions).forEach(partition => {
-    return sinon.stub(partition, 'close').callsFake((cb) => {
+    return sandbox.stub(partition, 'close').callsFake((cb) => {
       t.pass()
       cb()
     })
@@ -31,13 +39,9 @@ test('successfully closes cfs', async t => {
   }
 })
 
-test('successfully closes file descriptor', async t => {
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
+test.serial('successfully closes file descriptor', async t => {
   cfs.fileDescriptors['20'] = cfs.partitions.home
-  sinon.stub(cfs.partitions.home, 'close').callsFake((fd, cb) => {
+  sandbox.stub(cfs.partitions.home, 'close').callsFake((fd, cb) => {
     t.is(fd, 20)
     cb()
   })

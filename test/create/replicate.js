@@ -1,5 +1,3 @@
-const { existsSync } = require('fs')
-const constants = require('../../constants')
 const { createCFS } = require('../../create')
 const { test } = require('ava')
 const rimraf = require('rimraf')
@@ -11,14 +9,23 @@ test.cb.after(t => {
   rimraf('.cfses', t.end)
 })
 
+const sandbox = sinon.createSandbox()
+
+let cfs
+test.before(async t => {
+  cfs = await createCFS({
+    path: `./.cfses`
+  })
+})
+
+test.beforeEach(t => {
+  sandbox.restore()
+})
+
 test('replicate is called without errors', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
-  sinon.stub(cfs.partitions, 'resolve').callsFake((name) => {
+  sandbox.stub(cfs.partitions, 'resolve').callsFake((name) => {
     t.is('/', name)
     return cfs.partitions.home
   })
@@ -33,11 +40,7 @@ test('replicate is called without errors', async t => {
 test('replicate works without defining partition name and opts', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
-  sinon.stub(cfs.partitions, 'resolve').callsFake((name) => {
+  sandbox.stub(cfs.partitions, 'resolve').callsFake((name) => {
     t.is(cfs.HOME, name)
     return cfs.partitions.home
   })
@@ -49,11 +52,7 @@ test('replicate works without defining partition name and opts', async t => {
 test('replicate works without defining partition name', async t => {
   t.plan(1)
 
-  let cfs = await createCFS({
-    path: `./.cfses/${Math.random()}`
-  })
-
-  sinon.stub(cfs.partitions, 'resolve').callsFake((name) => {
+  sandbox.stub(cfs.partitions, 'resolve').callsFake((name) => {
     t.is(cfs.HOME, name)
     return cfs.partitions.home
   })
