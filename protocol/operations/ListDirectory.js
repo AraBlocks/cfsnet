@@ -32,5 +32,5 @@ async function ListDirectory({request, operation, message, cfs}) {
 
   const entries = await cfs.readdir(op.path)
 
-  return messages.List.encode({value: entries, length: entries.length})
+  return messages.List.encode({values: entries, length: entries.length})
 }
