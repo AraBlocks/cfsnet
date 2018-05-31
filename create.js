@@ -250,7 +250,7 @@ async function createCFS({
 
   await createPartition(drive.ETC)
   await createPartition(drive.LIB)
-  await createPartition(drive.TMP)
+  await createPartition(drive.TMP, ram)
   await createPartition(drive.VAR)
 
   const home = await partitions.create(drive.HOME, {
@@ -676,7 +676,7 @@ async function createCFS({
     }
   }
 
-  async function createPartition(name) {
+  async function createPartition(name, storageOverride) {
     if (false == tree.partitions.includes(name)) {
       throw new TypeError("Invalid partition: " + name)
     }
@@ -686,8 +686,10 @@ async function createCFS({
     const seed = Buffer.concat([prefix, secretKey])
     const keyPair = crypto.generateKeyPair(seed)
     await partitions.create(name, {
-      sparseMetadata, storage, sparse,
+      sparseMetadata, sparse,
+
       secretKey: keyPair.secretKey,
+      storage: storageOverride || storage,
       key: keyPair.publicKey,
     })
   }
