@@ -125,7 +125,9 @@ async function createCFS({
   drives[path] = drive
 
   const fileDescriptors = {}
-  let identifier = id ? Buffer.from(id) : null
+  let identifier = id
+    ? (Buffer.isBuffer(id) ? id : Buffer.from(id))
+    : null
 
   const root = {
     [$name]: 'root',
