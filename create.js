@@ -750,11 +750,11 @@ async function createCFSFiles({id, path, drive, key, sparse}) {
     const signatureFile = '/etc/cfs-signature'
     try { await pify(drive.access)(signatureFile) }
     catch (err) {
-      const signature = crypto.hash(Buffer.concat([
+      const signature = crypto.sha256(Buffer.concat([
         drive.identifier, drive.key, drive.metadata.secretKey
       ]))
-      debug("Writing CFS signature '%s' to %s", signature, signatureFile)
-      await pify(drive.writeFile)(signatureFile, Buffer.from(signature))
+      debug("Writing CFS signature '%s' to %s", signature.toString('hex'), signatureFile)
+      await pify(drive.writeFile)(signatureFile, signature)
     }
   } catch (err) {
     debug("Failed to create `/etc/cfs-signature' file", err)
