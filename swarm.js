@@ -3,7 +3,6 @@
 const { createCFSSignalHub } = require('./signalhub')
 const { normalizeCFSKey } = require('./key')
 const createWebRTCSwarm = require('webrtc-swarm')
-const { createSHA256 } = require('./sha256')
 const { EventEmitter } = require('events')
 const { createCFS } = require('./create')
 const randombytes = require('randombytes')
@@ -37,8 +36,8 @@ function createDiscoveryKeyAndId({
 
   if ('home' != partition) key = key.concat(Buffer.from(partition, 'utf8'))
 
-  const hash = crypto.hash(key)
-  const keyPair = crypto.generateKeyPair(Buffer.from(hash.slice(0, 64)))
+  const hash = crypto.sha256(key)
+  const keyPair = crypto.generateKeyPair(hash.slice(0, 64))
 
   const discoveryKey = crypto.generateDiscoveryKey(keyPair.publicKey)
   const discoveryId = randombytes(32)
