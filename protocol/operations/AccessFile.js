@@ -22,8 +22,10 @@ async function AccessFile({request, operation, message, cfs}) {
     throw new BadRequestError("Missing path.")
   }
 
-  try { return await cfs.access(op.path, op.mode) }
-  catch (err) {
+  try {
+    const value = await cfs.access(op.path, op.mode)
+    return messages.Boolean.encode({ value })
+  } catch (err) {
     if (/accessdenied/i.test(err.message)) {
       throw new AccessDeniedError()
     }
