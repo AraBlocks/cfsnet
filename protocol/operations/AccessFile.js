@@ -29,7 +29,7 @@ async function AccessFile({request, operation, message, cfs}) {
     }
 
     if (/notsupported/i.test(err.message)) {
-      throw NotSupportedError()
+      throw new NotSupportedError()
     }
 
     throw new NotFoundError()
