@@ -79,7 +79,7 @@ class Protocol extends Duplex {
   }
 
   nonce() {
-    return Buffer.from(crypto.sha256(String(Math.random())))
+    return crypto.nonce()
   }
 
   key(nonce) {
