@@ -24,15 +24,12 @@ function blake2b(buffer) {
 }
 
 function sha256(x) {
-  return Hash.sha256().update(x).digest('hex')
+  const digest = Hash.sha256().update(x).digest('hex')
+  return Buffer.from(digest, 'hex')
 }
 
 function nonce() {
-  return hash(Math.random())
-}
-
-function hash(x) {
-  return sha256(x)
+  return sha256(randombytes(32))
 }
 
 module.exports = {
@@ -42,5 +39,4 @@ module.exports = {
   blake2b,
   sha256,
   nonce,
-  hash,
 }
