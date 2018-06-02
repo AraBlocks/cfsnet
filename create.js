@@ -59,6 +59,7 @@ async function createCFS({
   path = null,
   latest = false,
   sparse = false,
+  shallow = false,
   storage = null,
   revision = null,
   secretKey = null,
@@ -250,10 +251,10 @@ async function createCFS({
     get TMP() { return '/tmp' }
   }))
 
-  await createPartition(drive.ETC)
-  await createPartition(drive.LIB)
+  await createPartition(drive.ETC, shallow ? ram : null)
+  await createPartition(drive.LIB, shallow ? ram : null)
   await createPartition(drive.TMP, ram)
-  await createPartition(drive.VAR)
+  await createPartition(drive.VAR, shallow ? ram : null)
 
   const home = await partitions.create(drive.HOME, {
     sparseMetadata, revision, storage, sparse, latest,
