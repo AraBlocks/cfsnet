@@ -21,5 +21,9 @@ async function RemoveDirectory({request, operation, message, cfs}) {
   try { await cfs.access(op.path) }
   catch (err) { throw new BadRequestError("Path does not exist.") }
 
-  return await cfs.rmdir(op.path)
+  try {
+    return await cfs.rmdir(op.path)
+  } catch (err) {
+    throw new BadRequestError("ENOTEMPTY" == err.message ? "Directory is not empty" : err.message)
+  }
 }
