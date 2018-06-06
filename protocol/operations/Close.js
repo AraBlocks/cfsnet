@@ -26,5 +26,5 @@ async function Close({request, operation, message, cfs}) {
     throw new NotOpenedError("File descriptor not opened.")
   }
 
-  return await cfs.close(op.fileDescriptors)
+  return await cfs.close(op.fileDescriptor)
 }
