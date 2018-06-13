@@ -17,7 +17,7 @@ constructed manually, programmitcally, or through a third-party. This
 can include typos, additions, deletions, and examples.
 
 ```
-docs(context.js): Describe new context API
+docs(resolve.js): Describe new resolve API
 ```
 
 ## Features
@@ -26,7 +26,7 @@ A `feat` type is a task that introduces a new feature. The new feature
 may introduce a breaking change to production code.
 
 ```
-feat(swarm.js): Introduce network connection strategy
+feat(create.js): Introduce new identity creation
 ```
 
 ## Fixes/bugs

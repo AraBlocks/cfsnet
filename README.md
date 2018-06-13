@@ -1,4 +1,4 @@
-CFSNet
+<img src="https://github.com/AraBlocks/docs/blob/master/ara.png" width="30" height="30" /> CFSNet
 ======
 
 # Abstract

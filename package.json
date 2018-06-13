@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dependency-check": "dependency-check .",
-    "test": "ava -s test"
+    "test": "ava -s test",
+    "lint": "eslint .",
+    "lint-fix": "eslint . --fix"
   },
   "author": "Joseph Werle <werle@littlstar.com>",
   "license": "Unlicense",
@@ -64,6 +66,9 @@
     "random-access-file-reader": "^1.0.0",
     "shaka-player": "^2.3.4",
     "sinon": "^5.0.7",
-    "videostream": "^2.4.2"
+    "videostream": "^2.4.2",
+    "eslint": "^4.19.1",
+    "eslint-config-littlstar": "github:littlstar/eslint-config-littlstar",
+    "eslint-plugin-import": "^2.12.0"
   }
 }
