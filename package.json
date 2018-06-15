@@ -14,7 +14,7 @@
   "dependencies": {
     "aws-sdk": "^2.190.0",
     "batch": "^0.6.1",
-    "cfsnet-protocol-buffers": "github:littlstar/cfsnet-protocol-buffers",
+    "cfsnet-protocol-buffers": "github:arablocks/cfsnet-protocol-buffers",
     "collect-stream": "^1.2.1",
     "connections": "^1.4.2",
     "cuid": "^2.1.0",
