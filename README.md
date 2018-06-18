@@ -28,7 +28,7 @@ const cfs = await createCFS({ id, key })
 ```
 
 ## Example
-*Create and write to a CFS:
+*Create and write to a CFS*:
 ```js
 const { createCFS } = require('cfsnet/create')
 
@@ -49,7 +49,7 @@ try {
 cfs.createWriteStream(`${cfs.HOME}/newFile`)
 ```
 
-*Create a swarm and read from a CFS:
+*Create a swarm and read from a CFS*:
 ```js
 const { createCFSDiscoverySwarm } = require('cfsnet/swarm')
 
