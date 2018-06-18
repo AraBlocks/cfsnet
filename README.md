@@ -33,7 +33,7 @@ const cfs = await createCFS({ id, key })
 const { createCFS } = require('cfsnet/create')
 
 const seed = crypto.blake2b(Buffer.from('Hi Mom!'))
-const keyPair= crypto.generateKeyPair(seed)
+const keyPair = crypto.generateKeyPair(seed)
 
 const key = keyPair.publicKey
 const secret = keyPair.secretKey
@@ -43,7 +43,7 @@ const cfs
 try {
   cfs = await createCFS({ id, key })
 } catch(e) {
-  console.error("Opps, there was an error creating the CFS: ", e)
+  console.error('Opps, there was an error with _createCFS_: ', e)
 }
 
 cfs.createWriteStream(`${cfs.HOME}/newFile`)
