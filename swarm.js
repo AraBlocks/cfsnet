@@ -1,5 +1,3 @@
-'use strict'
-
 const { createCFSSignalHub } = require('./signalhub')
 const { normalizeCFSKey } = require('./key')
 const createWebRTCSwarm = require('webrtc-swarm')
@@ -32,7 +30,7 @@ function createDiscoveryKeyAndId({
   cfs = null,
   partition = 'home',
 } = {}) {
-  let key = Buffer.concat([ cfs.identifier, cfs.key ])
+  let key = Buffer.concat([cfs.identifier, cfs.key])
 
   if ('home' != partition) key = key.concat(Buffer.from(partition, 'utf8'))
 
@@ -55,8 +53,10 @@ function createDiscoverySwarm({
   port
 }) {
   const swarm = discovery({
-    maxConnections, stream,
-    id: discoveryId, hash: false,
+    maxConnections,
+    stream,
+    id: discoveryId,
+    hash: false,
     dns: {
       ttl: dns.ttl || 30,
       limit: dns.limit || 1000,
@@ -81,10 +81,10 @@ function createDiscoverySwarm({
         { host: '127.0.0.1', port: 6881 },
 
         // @TODO(werle): move these to `cfs-cli'
-        {host: 'dht.us-east-1.littlstar.com', port: 6881},
-        {host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881},
-        {host: 'cfa-beta.us-east-1.littlstar.com', port: 6881},
-        {host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881},
+        { host: 'dht.us-east-1.littlstar.com', port: 6881 },
+        { host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881 },
+        { host: 'cfa-beta.us-east-1.littlstar.com', port: 6881 },
+        { host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881 },
       ],
     }
   })
@@ -139,8 +139,8 @@ async function createCFSDiscoverySwarm({
   cfs = cfs || await createCFS({ id, key })
 
   if (!id) {
-    debug("swarm: Waiting for identifier", cfs.identifier)
-    id = await new Promise((resolve) => cfs.once('id', resolve))
+    debug('swarm: Waiting for identifier', cfs.identifier)
+    id = await new Promise(resolve => cfs.once('id', resolve))
   }
 
   const ping = 'ws-ping'
@@ -153,9 +153,8 @@ async function createCFSDiscoverySwarm({
   if ('home' != partition) {
     const topic = await createCFSSignalHub({ discoveryKey: partition })
 
-    debug("topic: broadcast: %s", discoveryKey)
-    try { topic.broadcast({ discoveryKey, key }) }
-    catch (err) { debug("topic: broadcast: error:", err) }
+    debug('topic: broadcast: %s', discoveryKey)
+    try { topic.broadcast({ discoveryKey, key }) } catch (err) { debug('topic: broadcast: error:', err) }
   }
 
   const uid = discoveryId.toString('hex')
@@ -192,34 +191,36 @@ async function createCFSDiscoverySwarm({
       wss.setMaxListeners(Infinity)
       swarm.on('close', () => wss.close())
       hub.subscribe(ping).on('data', async (req) => {
-        debug("me:", { id: uid })
-        debug("ping:", req)
+        debug('me:', { id: uid })
+        debug('ping:', req)
         try {
           const address = ip.address()
           const { port } = wss._server.address()
           const localAddress = address
           const remoteAddress = await ipify()
-          const res = { remoteAddress, localAddress, address, port, id: uid }
+          const res = {
+            remoteAddress, localAddress, address, port, id: uid
+          }
           hub.broadcast(ack, res)
         } catch (err) {
-          debug("ping: error:", err)
+          debug('ping: error:', err)
         }
       })
 
       wss.on('connection', (socket) => {
         const { port } = wss._server.address()
-        const info = {port, address: 'websocket'}
+        const info = { port, address: 'websocket' }
         wsConnections.add(socket)
         swarm.emit('connection', socket, info)
         socket.pipe(stream(partition)()).pipe(socket)
         socket.once('error', (err) => {
-          debug("wss: connection: socket: error:", err)
+          debug('wss: connection: socket: error:', err)
           swarm.emit('error', err)
         })
       })
 
       wss.on('error', (err) => {
-        debug("wss: error:", err)
+        debug('wss: error:', err)
         swarm.emit('error', err)
       })
     }
@@ -241,7 +242,7 @@ async function createCFSDiscoverySwarm({
         channel.on('data', onack)
         const { value } = L.next()
         const wait = 500 * value
-        debug("heartbeat: wait=%s", wait)
+        debug('heartbeat: wait=%s', wait)
         pingpong() // init ping
         clearInterval(interval)
         interval = setInterval(pingpong, wait)
@@ -258,16 +259,14 @@ async function createCFSDiscoverySwarm({
 
     async function onack(res) {
       if (uid != res.id) {
-        debug("onack")
+        debug('onack')
         clearInterval(interval)
         channel.removeListener('data', onack)
-        try { await connect(res) }
-        catch (err) { debug("onack: connect: error:", err) }
+        try { await connect(res) } catch (err) { debug('onack: connect: error:', err) }
       }
     }
 
     async function connect(info, retries) {
-
       if (null == retries) {
         retries = kMaxWebSocketConnectRetries
       } else if (0 === retries) {
@@ -278,41 +277,38 @@ async function createCFSDiscoverySwarm({
         return heartbeat()
       }
 
-      debug("connect:", info)
+      debug('connect:', info)
 
       if (info && info.port) {
         if (info.remoteAddress) {
-          let host = `ws://${info.remoteAddress}:${info.port}`
-          try { return await pify(tryConnect)(host) }
-          catch (err) { debug("connect: error:", err) }
+          const host = `ws://${info.remoteAddress}:${info.port}`
+          try { return await pify(tryConnect)(host) } catch (err) { debug('connect: error:', err) }
         }
 
         if (info.localAddress) {
-          let host = `ws://${info.localAddress}:${info.port}`
-          try { return await pify(tryConnect)(host) }
-          catch (err) { debug("connect: error:", err) }
+          const host = `ws://${info.localAddress}:${info.port}`
+          try { return await pify(tryConnect)(host) } catch (err) { debug('connect: error:', err) }
         }
 
         if (info.address && info.address != info.localAddress) {
-          let host = `ws://${info.address}:${info.port}`
-          try { return await pify(tryConnect)(host) }
-          catch (err) { debug("connect: error:", err) }
+          const host = `ws://${info.address}:${info.port}`
+          try { return await pify(tryConnect)(host) } catch (err) { debug('connect: error:', err) }
         }
 
-        if (retries && 'number' == typeof retries) {
+        if (retries && 'number' === typeof retries) {
           const retry = kMaxWebSocketConnectRetries - retries
-          const wait = [ ...lucas(retry, kMaxWebSocketConnectRetries) ][retry]
+          const wait = [...lucas(retry, kMaxWebSocketConnectRetries)][retry]
           setTimeout(() => connect(info, --retries), wait)
         }
       }
 
       async function tryConnect(host, cb) {
         if (connected.includes(host)) {
-          return cb(new Error("Already connected"))
+          return cb(new Error('Already connected'))
         }
 
-        debug("connect: try:", host)
-        const socket = await createCFSWebSocket({host})
+        debug('connect: try:', host)
+        const socket = await createCFSWebSocket({ host })
         socket.once('connect', () => cb(null))
         socket.once('error', (err) => {
           cleanup()
@@ -330,7 +326,7 @@ async function createCFSDiscoverySwarm({
           connected.push(host)
           connections.push(socket)
           swarm.emit('connection', socket, info)
-          debug("socket: connect")
+          debug('socket: connect')
           socket.pipe(stream(partition)()).pipe(socket)
         })
 
@@ -350,10 +346,10 @@ async function createCFSDiscoverySwarm({
     const webrtcSwarm = createWebRTCSwarm(hub, { wrtc })
     swarm.on('close', () => { webrtcSwarm.close() })
     webrtcSwarm.on('peer', (peer, id) => {
-      debug("webrtc: peer:", id)
-      swarm.emit('connection', peer, {id})
+      debug('webrtc: peer:', id)
+      swarm.emit('connection', peer, { id })
       peer.pipe(stream(partition)()).pipe(peer).on('error', (err) => {
-        debug("webrtc: peer: replicate: error:", err)
+        debug('webrtc: peer: replicate: error:', err)
       })
     })
   }
@@ -382,14 +378,14 @@ async function createCFSDiscoverySwarm({
   function pingpong() {
     let released = false
     lock.pingpong((release) => {
-      debug("pingpong: ", uid)
+      debug('pingpong: ', uid)
       try {
-        hub.broadcast(ping, {id: uid}, (err) => {
-          if (err) { debug("pingpong: error:", err) }
+        hub.broadcast(ping, { id: uid }, (err) => {
+          if (err) { debug('pingpong: error:', err) }
           done()
         })
       } catch (err) {
-        debug("pingpong: error:", err)
+        debug('pingpong: error:', err)
         release()
       }
 
@@ -401,7 +397,7 @@ async function createCFSDiscoverySwarm({
   }
 
   function onerror(err) {
-    debug("error:", err)
+    debug('error:', err)
   }
 }
 

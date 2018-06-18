@@ -3,18 +3,17 @@ const { createCFS } = require('../../create')
 const { test } = require('ava')
 const cleanup = require('../../test/helpers/cleanup')
 
+
 test('cfs is created', async (t) => {
-  const cfs = await createCFS({
+  const cfs = await createCFS({ // eslint-disable-line no-unused-vars
     path: './test'
   })
 
   t.true(existsSync('test'))
 })
 
-
-
 test('cfs is created in non-existant folder', async (t) => {
-  const cfs = await createCFS({
+  const cfs = await createCFS({ // eslint-disable-line no-unused-vars
     path: './doesntExist'
   })
 
@@ -25,7 +24,6 @@ test.cb.after((t) => {
   t.plan(0)
   cleanup.remove('doesntexist', t.end)
 })
-
 
 test.cb.after((t) => {
   t.plan(0)

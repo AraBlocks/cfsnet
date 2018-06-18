@@ -1,5 +1,3 @@
-'use strict'
-
 const { resolve, join } = require('path')
 const debug = require('debug')('cfsnet:env')
 

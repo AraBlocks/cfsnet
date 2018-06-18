@@ -1,5 +1,3 @@
-'use strict'
-
 const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
 const through = require('through')
@@ -13,11 +11,11 @@ async function createCFSLog({
   name = 'events',
   flushInterval = 10000,
 } = {}) {
-  key = key ? normalizeCFSKey(key) : cfs ? cfs.key.toString('hex') : null
-  id = id ? id : cfs ? cfs.identifier : null
+  id = id || cfs && cfs.identifier || null
+  key = key && normalizeCFSKey(key) || cfs && cfs.key.toString('hex') || null
 
+  const path = createCFSKeyPath({ id, key })
   const log = `/var/log/${name}`
-  const path = createCFSKeyPath({id, key})
 
   let stream = through(onwrite)
   let timeout = null
@@ -28,10 +26,12 @@ async function createCFSLog({
   if (cfs) {
     stream = through(onwrite)
     stream.setMaxListeners(Infinity)
-    debug("Initializing CFS log writer '%s' for '%s' with flush interval %dms",
+    debug(
+      "Initializing CFS log writer '%s' for '%s' with flush interval %dms",
       log,
       path,
-      flushInterval)
+      flushInterval
+    )
     timeout = setTimeout(flush, flushInterval)
     setTimeout(flush, 0)
     initWriter()

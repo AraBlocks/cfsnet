@@ -1,4 +1,4 @@
-'use strict'
+
 
 const { BadRequestError } = require('../error')
 const messages = require('../messages')
@@ -12,12 +12,14 @@ const debug = require('debug')('cfsnet:protocol:operations:Resolve')
  * @param {Object} opts
  */
 module.exports = { Resolve }
-async function Resolve({request, operation, message, cfs}) {
+async function Resolve({
+  request, operation, message, cfs
+}) {
   const op = messages.Resolve.decode(message)
-  debug("op:", op)
-  if (!op.path || 'string' != typeof op.path || 0 == op.path.length) {
-    throw new BadRequestError("Bad file path.")
+  debug('op:', op)
+  if (!op.path || 'string' !== typeof op.path || 0 == op.path.length) {
+    throw new BadRequestError('Bad file path.')
   }
   const path = await cfs.resolve(op.path)
-  return messages.String.encode({value: path})
+  return messages.String.encode({ value: path })
 }

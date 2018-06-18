@@ -1,4 +1,4 @@
-'use strict'
+
 
 const { createCFSDiscoverySwarm } = require('../../swarm')
 const { createCFS } = require('../../create')
@@ -14,16 +14,18 @@ const ram = require('random-access-memory')
 const ras = require('random-access-stream')
 const qs = require('querystring')
 
-void async function main() {
+void (async function main() {
   const {
     file = null,
     key = null,
     id = 'werle/werle',
   } = qs.parse(window.location.search.slice(1))
 
-  console.log("file=%s key=%s id=%s", file, key, id);
+  console.log('file=%s key=%s id=%s', file, key, id);
   const URL = window.URL || window.webkitURL
-  const cfs = await createCFS({sparse: true, storage: ram, key, id})
+  const cfs = await createCFS({
+    sparse: true, storage: ram, key, id
+  })
   const swarm = await createCFSDiscoverySwarm({
     id, key, cfs, wrtc
   })
@@ -51,7 +53,7 @@ void async function main() {
       const stream = ras(raf(file))
       const writer = cfs.createWriteStream(file.name)
       stream.pipe(writer).on('end', () => {
-        console.log("ondrop: stream: writer: end: file:", file)
+        console.log('ondrop: stream: writer: end: file:', file)
       })
     }
   }
@@ -60,13 +62,12 @@ void async function main() {
     debug('onupdate');
     if (file) {
       debug('onstream')
-      //const stream = new VideoStream({createReadStream}, video)
+      // const stream = new VideoStream({createReadStream}, video)
       window.stream = stream
     }
   }
 
   function createReadStream(range) {
-    //return cfs.createReadStream(`${cfs.HOME}/${file}`, range)
+    // return cfs.createReadStream(`${cfs.HOME}/${file}`, range)
   }
-
-}()
+}())

@@ -6,8 +6,8 @@ const kCFSKeyHeader = 'x-cfs-key'
 const kCFSIDHeader = 'x-cfs-id'
 
 class CFSRemote extends CFSNetworkAgent {
-  async read(filename, {id, key, revision}) {
-    if ('/' != filename[0]) { filename = '/'+filename }
+  async read(filename, { id, key, revision }) {
+    if ('/' != filename[0]) { filename = `/${filename}` }
     return this.get({
       uri: filename,
       headers: {
@@ -18,7 +18,7 @@ class CFSRemote extends CFSNetworkAgent {
     })
   }
 
-  async call(method, action, {id, key, revision}) {
+  async call(method, action, { id, key, revision }) {
     return this[method.toLowerCase()]({
       uri: `/~/${action}`,
       headers: {

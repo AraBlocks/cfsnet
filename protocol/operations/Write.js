@@ -1,4 +1,4 @@
-'use strict'
+
 
 const { NotImplementedError } = require('../error')
 const messages = require('../messages')
@@ -9,6 +9,8 @@ const debug = require('debug')('cfsnet:protocol:operations:Write')
  * @param {Object} opts
  */
 module.exports = { Write }
-async function Write({request, operation, message, cfs}) {
+async function Write({
+  request, operation, message, cfs
+}) {
   throw new NotImplementedError()
 }

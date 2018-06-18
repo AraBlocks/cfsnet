@@ -1,5 +1,4 @@
 
-'use strict'
 
 const { BadRequestError } = require('../error')
 const messages = require('../messages')
@@ -14,13 +13,15 @@ const debug = require('debug')('cfsnet:protocol:operations:KeyPair')
  * @param {Object} opts
  */
 module.exports = { KeyPair }
-async function KeyPair({request, operation, message, cfs}) {
+async function KeyPair({
+  request, operation, message, cfs
+}) {
   const op = messages.KeyPair.decode(message)
   const { seed } = op
-  debug("op:", op)
+  debug('op:', op)
   try {
     const keyPair = crypto.generateKeyPair(seed)
-    Object.assign(keyPair, {seed})
+    Object.assign(keyPair, { seed })
     return messages.KeyPair.encode(keyPair)
   } catch (err) {
     throw new BadRequestError(err.message)

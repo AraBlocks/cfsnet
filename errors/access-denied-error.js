@@ -1,5 +1,3 @@
-'use strict'
-
 const CFSError = require('./cfs-error')
 
 class AccessDeniedError extends CFSError {

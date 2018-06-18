@@ -9,7 +9,8 @@
     "test": "ava -s test",
     "posttest": "node test/helpers/clean.js",
     "lint": "eslint .",
-    "lint-fix": "eslint . --fix"
+    "lint-fix": "eslint . --fix",
+    "lint-file": "eslint --quiet"
   },
   "author": "Joseph Werle <werle@littlstar.com>",
   "license": "Unlicense",

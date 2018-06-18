@@ -3,7 +3,7 @@ const { test } = require('ava')
 const cleanup = require('../../test/helpers/cleanup')
 const sinon = require('sinon')
 
-test.cb.after(t => {
+test.cb.after((t) => {
   t.plan(0)
 
   cleanup.remove('.cfses', t.end)
@@ -12,18 +12,18 @@ test.cb.after(t => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async t => {
+test.before(async () => {
   cfs = await createCFS({
-    path: `./.cfses`
+    path: './.cfses'
   })
 })
 
-test.beforeEach(t => {
+test.beforeEach(() => {
   cfs.fileDescriptors[20] = null
   sandbox.restore()
 })
 
-test.serial('read is called without errors', async t => {
+test.serial('read is called without errors', async (t) => {
   t.plan(1)
 
   cfs.fileDescriptors[20] = cfs.partitions.home
@@ -40,7 +40,7 @@ test.serial('read is called without errors', async t => {
   }
 })
 
-test('read fails with no fd', async t => {
+test('read fails with no fd', async (t) => {
   t.plan(1)
 
   try {
@@ -51,7 +51,7 @@ test('read fails with no fd', async t => {
   }
 })
 
-test('read fails with negative fd', async t => {
+test('read fails with negative fd', async (t) => {
   t.plan(1)
 
   try {

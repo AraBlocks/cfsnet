@@ -1,4 +1,4 @@
-'use strict'
+
 
 const messages = require('../messages')
 const debug = require('debug')('cfsnet:protocol:operations:AccessFile')
@@ -15,11 +15,13 @@ const {
  * @param {Object} opts
  */
 module.exports = { AccessFile }
-async function AccessFile({request, operation, message, cfs}) {
+async function AccessFile({
+  request, operation, message, cfs
+}) {
   const op = messages.AccessFile.decode(message)
-  debug("op:", op)
+  debug('op:', op)
   if (null == op.path || 0 == op.path.length) {
-    throw new BadRequestError("Missing path.")
+    throw new BadRequestError('Missing path.')
   }
 
   try {

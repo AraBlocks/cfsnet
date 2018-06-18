@@ -3,7 +3,7 @@ const { test } = require('ava')
 const cleanup = require('../../test/helpers/cleanup')
 const sinon = require('sinon')
 
-test.cb.after(t => {
+test.cb.after((t) => {
   t.plan(0)
 
   cleanup.remove('.cfses', t.end)
@@ -12,13 +12,13 @@ test.cb.after(t => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async t => {
+test.before(async () => {
   cfs = await createCFS({
-    path: `./.cfses`
+    path: './.cfses'
   })
 })
 
-test.beforeEach(t => {
+test.beforeEach(() => {
   sandbox.restore()
 })
 
@@ -31,5 +31,5 @@ test.serial('read stream is created', async (t) => {
     }
   })
 
-  const readStream = cfs.createReadStream('test')
+  const readStream = cfs.createReadStream('test') // eslint-disable-line no-unused-vars
 })

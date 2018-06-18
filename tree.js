@@ -1,11 +1,8 @@
-'use strict'
-
 /**
  * The `Tree` class contains a directory tree and associated
  * default files in a CFS FHS implementation.
  */
 class Tree {
-
   /**
    * Expose `Tree` class as static getter
    * @public
@@ -15,7 +12,6 @@ class Tree {
   static get Tree() { return Tree }
 
   constructor() {
-
     /**
      * An array of partitioned file systems.
      * @public
@@ -69,7 +65,4 @@ class Tree {
   }
 }
 
-/**
- * Module exports.
- */
 module.exports = new Tree()

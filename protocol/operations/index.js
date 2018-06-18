@@ -1,4 +1,4 @@
-'use strict'
+
 
 /**
  * Exported protocol operation function handles

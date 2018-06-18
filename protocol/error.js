@@ -1,4 +1,4 @@
-'use strict'
+
 
 const { ErrorCode } = require('./messages')
 
@@ -44,50 +44,64 @@ class ProtocolMessageError extends ProtocolError {
 
 class AccessDeniedError extends ProtocolMessageError {
   constructor(message) {
-    super(AccessDeniedError.code,
-      makeErrorMessage(AccessDeniedError.message, message))
+    super(
+      AccessDeniedError.code,
+      makeErrorMessage(AccessDeniedError.message, message)
+    )
   }
 }
 
 class BadRequestError extends ProtocolMessageError {
   constructor(message) {
-    super(BadRequestError.code,
-      makeErrorMessage(BadRequestError.message, message))
+    super(
+      BadRequestError.code,
+      makeErrorMessage(BadRequestError.message, message)
+    )
   }
 }
 
 class InternalError extends ProtocolMessageError {
   constructor(message) {
-    super(InternalError.code,
-      makeErrorMessage(InternalError.message, message))
+    super(
+      InternalError.code,
+      makeErrorMessage(InternalError.message, message)
+    )
   }
 }
 
 class NotFoundError extends ProtocolMessageError {
   constructor(message) {
-    super(NotFoundError.code,
-      makeErrorMessage(NotFoundError.message, message))
+    super(
+      NotFoundError.code,
+      makeErrorMessage(NotFoundError.message, message)
+    )
   }
 }
 
 class NotImplementedError extends ProtocolMessageError {
   constructor(message) {
-    super(NotImplementedError.code,
-      makeErrorMessage(NotImplementedError.message, message))
+    super(
+      NotImplementedError.code,
+      makeErrorMessage(NotImplementedError.message, message)
+    )
   }
 }
 
 class NotOpenedError extends ProtocolMessageError {
   constructor(message) {
-    super(NotOpenedError.code,
-      makeErrorMessage(NotOpenedError.message, message))
+    super(
+      NotOpenedError.code,
+      makeErrorMessage(NotOpenedError.message, message)
+    )
   }
 }
 
 class NotSupportedError extends ProtocolMessageError {
   constructor(message) {
-    super(NotSupportedError.code,
-      makeErrorMessage(NotSupportedError.message, message))
+    super(
+      NotSupportedError.code,
+      makeErrorMessage(NotSupportedError.message, message)
+    )
   }
 }
 

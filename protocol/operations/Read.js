@@ -1,4 +1,4 @@
-'use strict'
+
 
 const messages = require('../messages')
 const debug = require('debug')('cfsnet:protocol:operations:Read')
@@ -14,15 +14,17 @@ const {
  * @param {Object} opts
  */
 module.exports = { Read }
-async function Read({request, operation, message, cfs}) {
+async function Read({
+  request, operation, message, cfs
+}) {
   const op = messages.Read.decode(message)
-  debug("op:", op)
+  debug('op:', op)
   if (op.fileDescriptor <= 0) {
-    throw new BadRequestError("Bad file descriptor.")
+    throw new BadRequestError('Bad file descriptor.')
   }
 
   if (false == op.fileDescriptor in cfs.fileDescriptors) {
-    throw new NotOpenedError("File descriptor not opened.")
+    throw new NotOpenedError('File descriptor not opened.')
   }
 
   return await cfs.read(op.fileDescriptor, op)

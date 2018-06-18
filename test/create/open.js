@@ -3,7 +3,7 @@ const { test } = require('ava')
 const cleanup = require('../../test/helpers/cleanup')
 const sinon = require('sinon')
 
-test.cb.after(t => {
+test.cb.after((t) => {
   t.plan(0)
 
   cleanup.remove('.cfses', t.end)
@@ -12,17 +12,17 @@ test.cb.after(t => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async t => {
+test.before(async () => {
   cfs = await createCFS({
-    path: `./.cfses`
+    path: './.cfses'
   })
 })
 
-test.beforeEach(t => {
+test.beforeEach(() => {
   sandbox.restore()
 })
 
-test.serial('open is called without errors', async t => {
+test.serial('open is called without errors', async (t) => {
   t.plan(1)
 
   sandbox.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
@@ -37,7 +37,7 @@ test.serial('open is called without errors', async t => {
   }
 })
 
-test.serial('open is called without errors - flags', async t => {
+test.serial('open is called without errors - flags', async (t) => {
   t.plan(1)
 
   sandbox.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
@@ -52,7 +52,7 @@ test.serial('open is called without errors - flags', async t => {
   }
 })
 
-test.serial('open is called without errors - mode', async t => {
+test.serial('open is called without errors - mode', async (t) => {
   t.plan(1)
 
   sandbox.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
@@ -67,7 +67,7 @@ test.serial('open is called without errors - mode', async t => {
   }
 })
 
-test.serial('open is called with cb', async t => {
+test.serial('open is called with cb', async (t) => {
   t.plan(1)
 
   sandbox.stub(cfs.partitions.home, 'open').callsFake((_, _2, _3, cb) => {
@@ -76,7 +76,7 @@ test.serial('open is called with cb', async t => {
 
   await new Promise((resolve, reject) => {
     cfs.open('test', (err) => {
-      if (err) t.fail(err) && reject(err)
+      if (err) t.fail(err) && reject(err) // eslint-disable-line no-unused-expressions
       t.pass()
       resolve()
     })

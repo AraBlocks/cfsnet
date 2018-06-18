@@ -1,7 +1,7 @@
-'use strict'
+
 
 class CFSError extends Error {
-  constuctor({code, name, message} = {}) {
+  constuctor({ code, name, message } = {}) {
     super(message)
     this.code = code
     this.name = name

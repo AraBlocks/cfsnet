@@ -1,5 +1,3 @@
-'use strict'
-
 const { normalizeCFSKey } = require('./key')
 const { resolve, join } = require('path')
 const { CFS_ROOT_DIR } = require('./env')
@@ -11,7 +9,7 @@ const crypto = require('./crypto')
  * against the `CFS_ROOT_DIR` environment variable.
  */
 
-function createCFSKeyPath({id} = {}) {
+function createCFSKeyPath({ id } = {}) {
   const hash = crypto.sha256(id).toString('hex')
   const path = resolve(CFS_ROOT_DIR, hash)
   return path

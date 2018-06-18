@@ -12,25 +12,23 @@ test.cb.after((t) => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async t => {
+test.before(async () => {
   cfs = await createCFS({
-    path: `./.cfses`
+    path: './.cfses'
   })
 })
 
-test.beforeEach(t => {
+test.beforeEach(() => {
   cfs.fileDescriptors['20'] = null
   sandbox.restore()
 })
 
-test.serial('successfully closes cfs', async t => {
+test.serial('successfully closes cfs', async (t) => {
   // Stub the partition close
-  Object.values(cfs.partitions).forEach(partition => {
-    return sandbox.stub(partition, 'close').callsFake((cb) => {
-      t.pass()
-      cb()
-    })
-  })
+  Object.values(cfs.partitions).forEach(partition => sandbox.stub(partition, 'close').callsFake((cb) => {
+    t.pass()
+    cb()
+  }))
 
   try {
     await cfs.close()
@@ -39,7 +37,7 @@ test.serial('successfully closes cfs', async t => {
   }
 })
 
-test.serial('successfully closes file descriptor', async t => {
+test.serial('successfully closes file descriptor', async (t) => {
   cfs.fileDescriptors['20'] = cfs.partitions.home
   sandbox.stub(cfs.partitions.home, 'close').callsFake((fd, cb) => {
     t.is(fd, 20)

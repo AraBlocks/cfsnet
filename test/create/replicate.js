@@ -3,7 +3,7 @@ const { test } = require('ava')
 const cleanup = require('../../test/helpers/cleanup')
 const sinon = require('sinon')
 
-test.cb.after(t => {
+test.cb.after((t) => {
   t.plan(0)
 
   cleanup.remove('.cfses', t.end)
@@ -12,17 +12,17 @@ test.cb.after(t => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async t => {
+test.before(async () => {
   cfs = await createCFS({
-    path: `./.cfses`
+    path: './.cfses'
   })
 })
 
-test.beforeEach(t => {
+test.beforeEach(() => {
   sandbox.restore()
 })
 
-test('replicate is called without errors', async t => {
+test('replicate is called without errors', async (t) => {
   t.plan(1)
 
   sandbox.stub(cfs.partitions, 'resolve').callsFake((name) => {
@@ -37,7 +37,7 @@ test('replicate is called without errors', async t => {
   }
 })
 
-test('replicate works without defining partition name and opts', async t => {
+test('replicate works without defining partition name and opts', async (t) => {
   t.plan(1)
 
   sandbox.stub(cfs.partitions, 'resolve').callsFake((name) => {
@@ -49,7 +49,7 @@ test('replicate works without defining partition name and opts', async t => {
 })
 
 
-test('replicate works without defining partition name', async t => {
+test('replicate works without defining partition name', async (t) => {
   t.plan(1)
 
   sandbox.stub(cfs.partitions, 'resolve').callsFake((name) => {

@@ -1,5 +1,3 @@
-'use strict'
-
 const { normalizeCFSKey } = require('./key')
 const hyperdrive = require('hyperdrive')
 const mkdirp = require('mkdirp')
@@ -21,12 +19,12 @@ async function createCFSDrive({
 
   let drive = null
 
-  drive = hyperdrive(createStorage(), key ? key : undefined, {
+  drive = hyperdrive(createStorage(), key || undefined, {
     secretKey,
-    sparse: sparse ? true : false,
-    latest: latest ? true : false,
+    sparse: Boolean(sparse),
+    latest: Boolean(latest),
     version: revision,
-    sparseMetadata: sparseMetadata ? true : false,
+    sparseMetadata: Boolean(sparseMetadata),
   })
 
   // wait for drive to be ready
@@ -35,18 +33,19 @@ async function createCFSDrive({
     drive.once('error', reject)
   })
 
-  debug("Initializing CFS HyperDrive instance at '%s' with key '%s'",
+  debug(
+    "Initializing CFS HyperDrive instance at '%s' with key '%s'",
     storage ? '<random access>' : path,
-    (drive.key || Buffer.from(0)).toString('hex'))
+    (drive.key || Buffer.from(0)).toString('hex')
+  )
 
   return wrap(drive)
 
   function createStorage() {
-    if ('function' == typeof storage) {
-      return (filename) => storage(filename, drive, path)
-    } else {
-      return storage || path
+    if ('function' === typeof storage) {
+      return filename => storage(filename, drive, path)
     }
+    return storage || path
   }
 }
 
@@ -85,12 +84,14 @@ function wrap(drive) {
 
   Object.assign(drive, methods.reduce((d, m) => {
     fs[m] = drive[m].bind(drive)
-    return Object.assign(d, {[m]: (...args) => {
-      if ('function' != typeof args[0]) {
-        fsdebug("call %s", m, String(args[0]))
+    return Object.assign(d, {
+      [m]: (...args) => {
+        if ('function' !== typeof args[0]) {
+          fsdebug('call %s', m, String(args[0]))
+        }
+        return fs[m](...args)
       }
-      return fs[m](...args)
-    }})
+    })
   }, {}))
 
   // monkey patch to throw correct fs error
@@ -101,7 +102,7 @@ function wrap(drive) {
       rmdir(dir, (err) => {
         if (err) {
           if (err.message.toLowerCase().match(/directory is not empty/)) {
-            return cb(Object.assign(new Error('ENOTEMPTY'), {code: 'ENOTEMPTY'}))
+            return cb(Object.assign(new Error('ENOTEMPTY'), { code: 'ENOTEMPTY' }))
           }
         }
         cb(err)
@@ -109,7 +110,7 @@ function wrap(drive) {
     },
 
     mkdir(dir, opts, cb) {
-      if ('function' == typeof opts) {
+      if ('function' === typeof opts) {
         cb = opts
         opts = {}
       }
@@ -118,7 +119,7 @@ function wrap(drive) {
 
     // mkdir -p
     mkdirp(dir, cb) {
-      return mkdirp(dir, {fs: drive}, cb)
+      return mkdirp(dir, { fs: drive }, cb)
     },
 
     // rm -rf
@@ -129,8 +130,7 @@ function wrap(drive) {
     touch(path, cb) {
       drive.access(path, (err) => {
         // does not exist
-        if (err) { drive.writeFile(path, Buffer.from('\0'), cb) }
-        else { cb(null) }
+        if (err) { drive.writeFile(path, Buffer.from('\0'), cb) } else { cb(null) }
       })
     },
 

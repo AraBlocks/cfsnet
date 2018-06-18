@@ -1,4 +1,4 @@
-'use strict'
+
 
 const CFSError = require('./cfs-error')
 

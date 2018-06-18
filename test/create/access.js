@@ -13,21 +13,21 @@ test.cb.after((t) => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async t => {
+test.before(async () => {
   cfs = await createCFS({
     id: `test/access`,
-    path: `./.cfses`
+    path: './.cfses'
   })
 })
 
-test.beforeEach((t) => {
+test.beforeEach(() => {
   cfs.partitions.home.metadata.writable = true
   cfs.partitions.home.metadata.readable = true
 
   sandbox.restore()
 })
 
-test.serial('W_OK access fails when CFS closed', async t => {
+test.serial('W_OK access fails when CFS closed', async (t) => {
   try {
     await cfs.access('test', constants.W_OK)
     t.fail()
@@ -36,7 +36,7 @@ test.serial('W_OK access fails when CFS closed', async t => {
   }
 })
 
-test.serial('R_OK access fails when CFS closed', async t => {
+test.serial('R_OK access fails when CFS closed', async (t) => {
   cfs.partitions.home.metadata.readable = false
 
   try {
@@ -47,7 +47,7 @@ test.serial('R_OK access fails when CFS closed', async t => {
   }
 })
 
-test.serial('F_OK access fails when CFS closed', async t => {
+test.serial('F_OK access fails when CFS closed', async (t) => {
   cfs.partitions.home.metadata.writable = false
 
   try {
@@ -58,7 +58,7 @@ test.serial('F_OK access fails when CFS closed', async t => {
   }
 })
 
-test('W_OK access passes', async t => {
+test('W_OK access passes', async (t) => {
   try {
     await cfs.access('/var', constants.W_OK)
     t.pass()
@@ -68,7 +68,7 @@ test('W_OK access passes', async t => {
   }
 })
 
-test('R_OK access passes', async t => {
+test('R_OK access passes', async (t) => {
   try {
     await cfs.access('/var', constants.R_OK)
     t.pass()
@@ -78,7 +78,7 @@ test('R_OK access passes', async t => {
   }
 })
 
-test('F_OK access passes', async t => {
+test('F_OK access passes', async (t) => {
   try {
     await cfs.access('/var', constants.F_OK)
     t.pass()
@@ -88,7 +88,7 @@ test('F_OK access passes', async t => {
   }
 })
 
-test.serial('F_OK access implicitly checked', async t => {
+test.serial('F_OK access implicitly checked', async (t) => {
   const spy = sinon.spy(cfs.partitions.var, 'access')
 
   try {

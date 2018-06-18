@@ -1,4 +1,4 @@
-'use strict'
+
 
 const messages = require('../messages')
 const debug = require('debug')('cfsnet:protocol:operations:ReadFile')
@@ -16,20 +16,21 @@ const {
  * @param {Object} opts
  */
 module.exports = { ReadFile }
-async function ReadFile({request, operation, message, cfs}) {
+async function ReadFile({
+  request, operation, message, cfs
+}) {
   const op = messages.ReadFile.decode(message)
-  debug("op:", op)
+  debug('op:', op)
 
-  if (!op.path || 'string' != typeof op.path || 0 == op.path.length) {
-    throw new BadRequestError("Bad file path.")
+  if (!op.path || 'string' !== typeof op.path || 0 == op.path.length) {
+    throw new BadRequestError('Bad file path.')
   }
 
   if (0 == op.end) {
     delete op.end
   }
 
-  try { await cfs.access(op.path) }
-  catch (err) { throw new NotFoundError() }
+  try { await cfs.access(op.path) } catch (err) { throw new NotFoundError() }
 
   return await cfs.readFile(op.path, op)
 }
