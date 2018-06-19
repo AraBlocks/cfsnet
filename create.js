@@ -169,10 +169,26 @@ async function createCFS({
       else { return parse(resolved) || root }
 
       function parse(filename) {
+
+        // Strip Win32 drives from a filename
+        function stripWinDrives(winFilename) {
+          const regex = /^.:/
+          return winFilename.replace(regex, '')
+        }
+
+        // Determine if the filename is a top level directory
+        function isTopDir(topFilename) {
+          return ('/' === topFilename[0] || '\\' === topFilename[0])
+        }
+
+        if (process.platform === 'win32') {
+          filename = stripWinDrives(filename)
+        }
+
         if (filename in partitions) {
           debug("partitions: resolve: parse:", filename)
           return partitions[filename]
-        } else if ('/' == filename[0]) {
+        } else if (isTopDir(filename)) {
           for (let i = 1; i < filename.length; ++i) {
             const slice = filename.slice(1, i + 1)
             if (slice in partitions) {
