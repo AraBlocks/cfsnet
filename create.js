@@ -181,7 +181,7 @@ async function createCFS({
           return ('/' === topFilename[0] || '\\' === topFilename[0])
         }
 
-        if (process.platform === 'win32') {
+        if ('win32' === process.platform) {
           filename = stripWinDrives(filename)
         }
 
