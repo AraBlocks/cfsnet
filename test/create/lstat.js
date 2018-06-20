@@ -1,12 +1,12 @@
 const { createCFS } = require('../../create')
 const { test } = require('ava')
-const rimraf = require('rimraf')
+const cleanup = require('../../test/helpers/cleanup')
 const sinon = require('sinon')
 
 test.cb.after(t => {
   t.plan(0)
 
-  rimraf('.cfses', t.end)
+  cleanup.remove('.cfses', t.end)
 })
 
 const sandbox = sinon.createSandbox()

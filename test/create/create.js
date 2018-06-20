@@ -1,16 +1,9 @@
 const { existsSync } = require('fs')
 const { createCFS } = require('../../create')
 const { test } = require('ava')
-const rimraf = require('rimraf')
+const cleanup = require('../../test/helpers/cleanup')
 
-test.cb.after(t => {
-  t.plan(0)
-
-  const partitions = [ 'etc', 'home', 'lib', 'metadata', 'tmp', 'var' ]
-  rimraf(`./test{/${partitions.join(',/')}}`, t.end)
-})
-
-test('cfs is created', async t => {
+test('cfs is created', async (t) => {
   const cfs = await createCFS({
     path: './test'
   })
@@ -18,15 +11,24 @@ test('cfs is created', async t => {
   t.true(existsSync('test'))
 })
 
-test.cb.after(t => {
-  t.plan(0)
-  rimraf('doesntExist', t.end)
-})
 
-test('cfs is created in non-existant folder', async t => {
+
+test('cfs is created in non-existant folder', async (t) => {
   const cfs = await createCFS({
     path: './doesntExist'
   })
 
   t.true(existsSync('doesntExist'))
+})
+
+test.cb.after((t) => {
+  t.plan(0)
+  cleanup.remove('doesntexist', t.end)
+})
+
+
+test.cb.after((t) => {
+  t.plan(0)
+  const partitions = ['etc', 'home', 'lib', 'metadata', 'tmp', 'var']
+  cleanup.remove(`./test{/${partitions.join(',/')}}`, t.end)
 })

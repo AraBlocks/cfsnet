@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dependency-check": "dependency-check .",
+    "pretest": "node test/helpers/clean.js",
     "test": "ava -s test",
+    "posttest": "node test/helpers/clean.js",
     "lint": "eslint .",
     "lint-fix": "eslint . --fix"
   },
