@@ -15,6 +15,7 @@ const sandbox = sinon.createSandbox()
 let cfs
 test.before(async t => {
   cfs = await createCFS({
+    id: `test/access`,
     path: `./.cfses`
   })
 })
