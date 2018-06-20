@@ -1,12 +1,9 @@
 const { existsSync } = require('fs')
 const { createCFS } = require('../../create')
 const { test } = require('ava')
-const rimraf = require('rimraf')
-const cleanup = require('../../cleanup')
+const cleanup = require('../../test/helpers/cleanup')
 
-
-
-test('cfs is created', async t => {
+test('cfs is created', async (t) => {
   const cfs = await createCFS({
     path: './test'
   })

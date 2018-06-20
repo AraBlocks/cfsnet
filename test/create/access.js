@@ -1,7 +1,7 @@
 const { createCFS } = require('../../create')
 const constants = require('../../constants')
 const { test } = require('ava')
-const cleanup = require('../../cleanup')
+const cleanup = require('../../test/helpers/cleanup')
 const sinon = require('sinon')
 
 test.cb.after((t) => {
@@ -62,6 +62,7 @@ test('W_OK access passes', async t => {
     await cfs.access('/var', constants.W_OK)
     t.pass()
   } catch (e) {
+    console.log(e)
     t.fail()
   }
 })
@@ -71,6 +72,7 @@ test('R_OK access passes', async t => {
     await cfs.access('/var', constants.R_OK)
     t.pass()
   } catch (e) {
+    console.log(e)
     t.fail()
   }
 })
@@ -80,6 +82,7 @@ test('F_OK access passes', async t => {
     await cfs.access('/var', constants.F_OK)
     t.pass()
   } catch (e) {
+    console.log(e)
     t.fail()
   }
 })
@@ -91,6 +94,7 @@ test.serial('F_OK access implicitly checked', async t => {
     await cfs.access('/var')
     t.true(spy.called)
   } catch (e) {
+    console.log(e)
     t.fail()
   }
 })

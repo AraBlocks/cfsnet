@@ -1,12 +1,12 @@
 const { createCFS } = require('../../create')
 const { test } = require('ava')
-const rimraf = require('rimraf')
+const cleanup = require('../../test/helpers/cleanup')
 const sinon = require('sinon')
 
 test.cb.after(t => {
   t.plan(0)
 
-  rimraf('.cfses', t.end)
+  cleanup.remove('.cfses', t.end)
 })
 
 const sandbox = sinon.createSandbox()
@@ -24,7 +24,11 @@ test.beforeEach(t => {
 
 test.serial('read stream is created', async t => {
   sandbox.stub(cfs.partitions.home, 'createReadStream').callsFake((fileName) => {
-    t.is(fileName, '/test')
+    if ('win32' === process.platform) {
+      t.true(fileName.includes('\\home\\test'))
+    }else{
+      t.is(fileName, '/test')
+    }
   })
 
   const readStream = cfs.createReadStream('test')
