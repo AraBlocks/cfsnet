@@ -22,11 +22,11 @@ test.beforeEach(t => {
   sandbox.restore()
 })
 
-test.serial('read stream is created', async t => {
+test.serial('read stream is created', async (t) => {
   sandbox.stub(cfs.partitions.home, 'createReadStream').callsFake((fileName) => {
     if ('win32' === process.platform) {
       t.true(fileName.includes('\\home\\test'))
-    }else{
+    } else {
       t.is(fileName, '/test')
     }
   })
