@@ -1,6 +1,6 @@
 'use strict'
 
-const { keyPair, discoveryKey } = require('hypercore/lib/crypto')
+const { keyPair, discoveryKey } = require('hypercore-crypto')
 const randombytes = require('randombytes')
 const sodium = require('sodium-universal')
 const Hash = require('hash.js')
