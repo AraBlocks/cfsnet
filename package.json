@@ -57,6 +57,7 @@
     "through": "^2.3.8",
     "to-buffer": "^1.1.1",
     "turbo-net": "^1.4.0",
+    "unixify": "^1.0.0",
     "webrtc-swarm": "^2.9.0",
     "ws": "^5.1.1"
   },
