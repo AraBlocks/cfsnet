@@ -6,6 +6,7 @@ const { resolve } = require('path')
 const JSONStream = require('streaming-json-stringify')
 const constants = require('./constants')
 const isBrowser = require('is-browser')
+const unixify = require('unixify')
 const pumpcat = require('pumpcat')
 const drives = require('./drives')
 const crypto = require('./crypto')
@@ -241,7 +242,7 @@ async function createCFS({
         Object.assign(partition, {
           resolve(filename) {
             const regex = RegExp(`^/${name}`)
-            const resolved = filename.replace(regex, '')
+            const resolved = unixify(filename).replace(regex, '')
             debug('partition %s: resolve: %s -> %s', filename, resolved)
             return resolved
           }
@@ -609,17 +610,16 @@ async function createCFS({
         throw new TypeError('Expecting filename to be a string')
       }
 
+      filename = unixify(filename)
       debug('resolve: HOME=%s filename=%s', HOME, filename)
 
-      return resolve(HOME, parse(filename))
+      return unixify(resolve(HOME, parse(filename)))
 
       function parse(filename) { // eslint-disable-line no-shadow
         if ('string' !== typeof filename) {
           return '.'
         }
-        // $1 is matched group after optional tilde
         filename = filename.replace(/^~\/?/, '')
-
         return filename
       }
     }
