@@ -321,26 +321,32 @@ async function createCFS({
       return cb(new Error('BadOpenRequest'))
     },
 
-    async stat(filename, cb) {
+    async stat(filename, opts, cb) {
+      if ('function' === typeof opts) return this.stat(filename, null, opts)
+      if (!opts) opts = {}
+
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       debug('partition: %s: stat: %s', partition[$name], filename)
       if (filename.slice(1) in partitions) {
-        return root.stat(filename, cb)
+        return root.stat(filename, opts, cb)
       }
       filename = partition.resolve(filename)
-      return partition.stat(filename, cb)
+      return partition.stat(filename, opts, cb)
     },
 
-    async lstat(filename, cb) {
+    async lstat(filename, opts, cb) {
+      if ('function' === typeof opts) return this.lstat(filename, null, opts)
+      if (!opts) opts = {}
+
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       debug('partition: %s: lstat: %s', partition[$name], filename)
       if (filename.slice(1) in partitions) {
-        return root.lstat(filename, cb)
+        return root.lstat(filename, opts, cb)
       }
       filename = partition.resolve(filename)
-      return partition.lstat(filename, cb)
+      return partition.lstat(filename, opts, cb)
     },
 
     async close(fd, cb) {
