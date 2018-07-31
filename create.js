@@ -325,7 +325,9 @@ async function createCFS({
       if ('function' === typeof opts) {
         cb = opts
         opts = {}
-      } else if (!opts) opts = {}
+      } else if (!opts) {
+        opts = {}
+      }
 
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
@@ -341,7 +343,9 @@ async function createCFS({
       if ('function' === typeof opts) {
         cb = opts
         opts = {}
-      } else if (!opts) opts = {}
+      } else if (!opts) {
+        opts = {}
+      }
 
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
