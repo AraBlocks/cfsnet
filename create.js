@@ -322,8 +322,10 @@ async function createCFS({
     },
 
     async stat(filename, opts, cb) {
-      if ('function' === typeof opts) return this.stat(filename, null, opts)
-      if (!opts) opts = {}
+      if ('function' === typeof opts) {
+        cb = opts
+        opts = {}
+      } else if (!opts) opts = {}
 
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
@@ -336,8 +338,10 @@ async function createCFS({
     },
 
     async lstat(filename, opts, cb) {
-      if ('function' === typeof opts) return this.lstat(filename, null, opts)
-      if (!opts) opts = {}
+      if ('function' === typeof opts) {
+        cb = opts
+        opts = {}
+      } else if (!opts) opts = {}
 
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
