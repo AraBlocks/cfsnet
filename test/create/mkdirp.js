@@ -35,14 +35,16 @@ test('mkdirp is called without errors', async (t) => {
 })
 
 test('mkdirp is called with cb', async (t) => {
-  t.plan(1)
+  t.plan(2)
 
   const spy = sandbox.spy(cfs.partitions.home, 'mkdirp')
 
   await new Promise((resolve, reject) => {
     cfs.mkdirp('test', (err) => {
       if (err) t.fail(err) && reject(err) // eslint-disable-line no-unused-expressions
-      t.is(typeof spy.firstCall.args[1], 'function')
+
+      t.is(typeof spy.firstCall.args[1], 'object')
+      t.is(typeof spy.firstCall.args[2], 'function')
       resolve()
     })
   })

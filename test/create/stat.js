@@ -25,7 +25,7 @@ test.beforeEach(() => {
 test('stat is called without errors', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'stat').callsFake((_, cb) => {
+  sandbox.stub(cfs.partitions.home, 'stat').callsFake((_, _2, cb) => {
     t.pass()
     cb()
   })
@@ -40,7 +40,7 @@ test('stat is called without errors', async (t) => {
 test('stat is called with cb', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'stat').callsFake((_, cb) => {
+  sandbox.stub(cfs.partitions.home, 'stat').callsFake((_, _2, cb) => {
     t.pass()
     cb()
   })

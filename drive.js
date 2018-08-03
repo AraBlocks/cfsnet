@@ -118,8 +118,19 @@ function wrap(drive) {
     },
 
     // mkdir -p
-    mkdirp(dir, cb) {
-      return mkdirp(dir, { fs: drive }, cb)
+    mkdirp(dir, opts, cb) {
+      if ('function' === typeof opts) {
+        cb = opts
+        opts = { fs: drive }
+      } else if ('object' == typeof opts){
+        opts.fs = drive
+      } else {
+        opts = {
+          fs: drive,
+          mode: opts
+        }
+      }
+      return mkdirp(dir, opts, cb)
     },
 
     // rm -rf

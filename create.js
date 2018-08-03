@@ -325,10 +325,7 @@ async function createCFS({
       if ('function' === typeof opts) {
         cb = opts
         opts = {}
-      } else if (!opts) {
-        opts = {}
       }
-
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       debug('partition: %s: stat: %s', partition[$name], filename)
@@ -343,10 +340,7 @@ async function createCFS({
       if ('function' === typeof opts) {
         cb = opts
         opts = {}
-      } else if (!opts) {
-        opts = {}
       }
-
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       debug('partition: %s: lstat: %s', partition[$name], filename)
@@ -439,20 +433,28 @@ async function createCFS({
       return partition.unlink(filename, cb)
     },
 
-    async mkdir(filename, cb) {
+    async mkdir(filename, opts, cb) {
+      if ('function' === typeof opts) {
+        cb = opts
+        opts = {}
+      }
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
       debug('partition: %s: mkdir: %s', partition[$name], filename)
-      return partition.mkdir(filename, cb)
+      return partition.mkdir(filename, opts, cb)
     },
 
-    async mkdirp(filename, cb) {
+    async mkdirp(filename, opts, cb) {
+      if ('function' === typeof opts) {
+        cb = opts
+        opts = {}
+      }
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
       debug('partition: %s: mkdirp: %s', partition[$name], filename)
-      return partition.mkdirp(filename, cb)
+      return partition.mkdirp(filename, opts, cb)
     },
 
     async readdir(filename, opts, cb) {
