@@ -1,15 +1,17 @@
-const { resolve, join } = require('path')
+const { resolve } = require('path')
 const debug = require('debug')('cfsnet:env')
 
 /**
  * The root CFS directory path on the machine's filesystem.
  */
-const CFS_ROOT_DIR = process.env.CFS_ROOT_DIR || resolve('.cfs')
-
-debug(`
-  CFS_ROOT_DIR: ${CFS_ROOT_DIR}
-`)
 
 module.exports = {
-  CFS_ROOT_DIR,
+  get CFS_ROOT_DIR() {
+    return process.env.CFS_ROOT_DIR || resolve('.cfs')
+  },
+
+  set CFS_ROOT_DIR(dir) {
+    debug('CFS_ROOT_DIR=%s', dir)
+    process.env.CFS_ROOT_DIR = resolve(dir)
+  }
 }
