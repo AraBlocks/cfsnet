@@ -19,10 +19,8 @@ const raf = require('random-access-file')
 const ram = require('random-access-memory')
 const ms = require('ms')
 
-const kLogEventTimeout = ms('10m') // eslint-disable-line no-unused-vars
-const kEventLogFile = '/var/log/events'
-const kCFSKeyFile = '/etc/cfs-key'
-const kCFSIDFile = '/etc/cfs-id'
+const LOG_EVENT_TIMEOUT = ms('10m') // eslint-disable-line no-unused-vars
+const EVENT_LOG_FILE = '/var/log/events'
 
 const $name = Symbol('partition.name')
 
@@ -37,7 +35,8 @@ async function ensureCFSRootDirectoryAccess({ fs = require('fs') }) {
   try {
     await pify(fs.access)(env.CFS_ROOT_DIR)
   } catch (err) {
-    void (err, await pify(mkdirp)(env.CFS_ROOT_DIR, { fs })) // eslint-disable-line no-void
+    // eslint-disable-next-line no-void
+    void (err, await pify(mkdirp)(env.CFS_ROOT_DIR, { fs }))
   }
 }
 
@@ -104,7 +103,8 @@ async function createCFS({
   // this needs to occur so a key can be generated
   debug('Ensuring CFS drive is ready')
   await pify(drive.ready)()
-  /*
+
+  /**
    * this ensures "root" directory actually has a "Stat" in
    * its metatdata
    */
@@ -692,9 +692,9 @@ async function createCFS({
   async function onupdate() {
     debug('onupdate')
     try {
-      await pify(drive.access)(kCFSIDFile)
+      await pify(drive.access)(cfs.CFSID)
       if (null == identifier) {
-        identifier = await pify(drive.readFile)(kCFSIDFile)
+        identifier = await pify(drive.readFile)(cfs.CFSID)
       }
       onidentifier(identifier)
     } catch (err) {
@@ -719,9 +719,9 @@ async function createCFS({
     debug('init: id')
     if (id && drive.writable) {
       try {
-        await pify(drive.access)(kCFSIDFile)
+        await pify(drive.access)(cfs.CFSID)
       } catch (err) {
-        await pify(drive.writeFile)(kCFSIDFile, Buffer.from(id))
+        await pify(drive.writeFile)(cfs.CFSID, Buffer.from(id))
       }
     } else {
       await onupdate()
@@ -753,7 +753,7 @@ async function createCFS({
       const serialize = JSONStream()
       pumpcat(history, serialize, (err, buf) => {
         if (buf) {
-          drive.writeFile(kEventLogFile, buf, done)
+          drive.writeFile(EVENT_LOG_FILE, buf, done)
         } else {
           done(err)
         }
