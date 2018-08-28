@@ -1,7 +1,6 @@
 const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
 const { createCFSDrive } = require('./drive')
-const { CFS_ROOT_DIR } = require('./env')
 const { resolve } = require('path')
 const JSONStream = require('streaming-json-stringify')
 const constants = require('./constants')
@@ -15,6 +14,7 @@ const Batch = require('batch')
 const debug = require('debug')('cfsnet:create')
 const tree = require('./tree')
 const pify = require('pify')
+const env = require('./env')
 const raf = require('random-access-file')
 const ram = require('random-access-memory')
 const ms = require('ms')
@@ -32,11 +32,11 @@ const identity = i => i
  * create it.
  */
 async function ensureCFSRootDirectoryAccess({ fs = require('fs') }) {
-  debug("Ensuring root CFS directory '%s' has access", CFS_ROOT_DIR)
+  debug("Ensuring root CFS directory '%s' has access", env.CFS_ROOT_DIR)
   try {
-    await pify(fs.access)(CFS_ROOT_DIR)
+    await pify(fs.access)(env.CFS_ROOT_DIR)
   } catch (err) {
-    void (err, await pify(mkdirp)(CFS_ROOT_DIR, { fs })) // eslint-disable-line no-void
+    void (err, await pify(mkdirp)(env.CFS_ROOT_DIR, { fs })) // eslint-disable-line no-void
   }
 }
 
