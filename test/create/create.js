@@ -14,10 +14,10 @@ test('cfs is created', async (t) => {
 
 test('cfs is created in non-existant folder', async (t) => {
   const cfs = await createCFS({ // eslint-disable-line no-unused-vars
-    path: './doesntExist'
+    path: './doesntexist'
   })
 
-  t.true(existsSync('doesntExist'))
+  t.true(existsSync('doesntexist'))
 })
 
 test.cb.after((t) => {
