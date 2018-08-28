@@ -21,6 +21,7 @@ const ms = require('ms')
 
 const kLogEventTimeout = ms('10m') // eslint-disable-line no-unused-vars
 const kEventLogFile = '/var/log/events'
+const kCFSKeyFile = '/etc/cfs-key'
 const kCFSIDFile = '/etc/cfs-id'
 
 const $name = Symbol('partition.name')
@@ -205,6 +206,7 @@ async function createCFS({
 
     async create(name, opts) {
       name = name.replace(/^\//, '')
+
       if (false == name in this) {
         Object.assign(opts, { path: resolve(path, name) })
         const partition = await createCFSDrive(opts)
@@ -261,7 +263,11 @@ async function createCFS({
     get partitions() { return partitions },
     get root() { return root },
 
-    get CFSID() { return kCFSIDFile },
+    get CFSSIGNATURE() { return '/etc/cfs-signature' },
+    get CFSEPOCH() { return '/etc/cfs-epoch' },
+    get CFSKEY() { return '/etc/cfs-key' },
+    get CFSID() { return '/etc/cfs-id' },
+
     get TMPDIR() { return this.TMP },
     get HOME() { return '/home' },
     get LIB() { return '/lib' },
@@ -803,7 +809,7 @@ async function createCFSFiles({
   )
 
   try {
-    const signatureFile = '/etc/cfs-signature'
+    const signatureFile = drive.CFSSIGNATURE
     try { await pify(drive.access)(signatureFile) } catch (err) {
       const signature = crypto.sha256(Buffer.concat([
         drive.identifier, drive.key, drive.metadata.secretKey
@@ -816,7 +822,7 @@ async function createCFSFiles({
   }
 
   try {
-    const epochFile = '/etc/cfs-epoch'
+    const epochFile = drive.CFSEPOCH
     try { await pify(drive.access)(epochFile) } catch (err) {
       // in seconds
       const timestamp = String((Date.now() / 1000) | 0) // eslint-disable-line no-bitwise
@@ -825,6 +831,16 @@ async function createCFSFiles({
     }
   } catch (err) {
     debug("Failed to create `/etc/cfs-epoch' file", err)
+  }
+
+  try {
+    const keyFile = drive.CFSKEY
+    try { await pify(drive.access)(keyFile) } catch (err) {
+      debug("Writing CFS key '%s' to %s", drive.key, keyFile)
+      await pify(drive.writeFile)(keyFile, drive.key)
+    }
+  } catch (err) {
+    debug("Failed to create `/etc/cfs-key' file", err)
   }
 
   for (const file of tree.files) {
