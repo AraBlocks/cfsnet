@@ -1,7 +1,5 @@
 const { normalizeCFSKey } = require('./key')
 const { createCFSKeyPath } = require('./key-path')
-const { CFS_ROOT_DIR } = require('./env')
-const { resolve } = require('path')
 const drives = require('./drives')
 const rimraf = require('rimraf')
 const debug = require('debug')('cfsnet:destroy')
@@ -23,8 +21,8 @@ async function destroyCFS({
   autoClose = true,
   destroyPath = false,
 } = {}) {
-  id = id || cfs && cfs.identifier || null
-  key = key && normalizeCFSKey(key) || cfs && cfs.key.toString('hex') || null
+  id = id || (cfs && cfs.identifier) || null
+  key = (key && normalizeCFSKey(key)) || (cfs && cfs.key.toString('hex')) || null
   path = path || createCFSKeyPath({ id, key })
 
   const drive = cfs || drives[path]
@@ -39,7 +37,7 @@ async function destroyCFS({
       try {
         await pify(drive.stat)(drive.HOME)
         await pify(drive.rimraf)(drive.HOME)
-      } catch (err) { }
+      } catch (err) { void err }
 
       if (autoClose) {
         await pify(drive.close)()
