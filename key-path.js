@@ -1,7 +1,6 @@
-const { normalizeCFSKey } = require('./key')
-const { resolve, join } = require('path')
-const { CFS_ROOT_DIR } = require('./env')
+const { resolve } = require('path')
 const crypto = require('./crypto')
+const env = require('./env')
 
 /**
  * This function creates a CFS key path from a given identifier
@@ -11,7 +10,7 @@ const crypto = require('./crypto')
 
 function createCFSKeyPath({ id } = {}) {
   const hash = crypto.sha256(id).toString('hex')
-  const path = resolve(CFS_ROOT_DIR, hash)
+  const path = resolve(env.CFS_ROOT_DIR, hash)
   return path
 }
 
