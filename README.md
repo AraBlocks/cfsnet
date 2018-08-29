@@ -39,14 +39,14 @@ const key = keyPair.publicKey
 const secret = keyPair.secretKey
 const id = 'cfs/directory'
 
-const cfs
-try {
-  cfs = await createCFS({ id, key })
-} catch(e) {
-  console.error('Opps, there was an error with _createCFS_: ', e)
-}
-
-cfs.createWriteStream(`${cfs.HOME}/newFile`)
+void (async function main(){
+  try {
+    const cfs = await createCFS({ id, key })
+    cfs.createWriteStream(`${cfs.HOME}/newFile`)
+  } catch(e) {
+    console.error('Opps, there was an error with _createCFS_: ', e)
+  }
+}())
 ```
 
 *Create a swarm and read from a CFS*:
