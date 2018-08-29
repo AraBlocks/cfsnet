@@ -692,9 +692,9 @@ async function createCFS({
   async function onupdate() {
     debug('onupdate')
     try {
-      await pify(drive.access)(cfs.CFSID)
+      await pify(drive.access)(drive.CFSID)
       if (null == identifier) {
-        identifier = await pify(drive.readFile)(cfs.CFSID)
+        identifier = await pify(drive.readFile)(drive.CFSID)
       }
       onidentifier(identifier)
     } catch (err) {
@@ -719,9 +719,9 @@ async function createCFS({
     debug('init: id')
     if (id && drive.writable) {
       try {
-        await pify(drive.access)(cfs.CFSID)
+        await pify(drive.access)(drive.CFSID)
       } catch (err) {
-        await pify(drive.writeFile)(cfs.CFSID, Buffer.from(id))
+        await pify(drive.writeFile)(drive.CFSID, Buffer.from(id))
       }
     } else {
       await onupdate()
