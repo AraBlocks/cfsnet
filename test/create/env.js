@@ -11,7 +11,7 @@ test('env.CFS_ROOT_DIR accessor', async (t) => {
   await pify(rimraf)(dir)
 
   env.CFS_ROOT_DIR = dir
-
+  t.true(dir === process.env.CFS_ROOT_DIR)
   t.true(dir === env.CFS_ROOT_DIR)
 
   await createCFS({ id: 'test' })
