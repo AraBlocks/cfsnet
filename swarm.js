@@ -1,406 +1,324 @@
-const { createCFSSignalHub } = require('./signalhub')
-const { normalizeCFSKey } = require('./key')
-const createWebRTCSwarm = require('webrtc-swarm')
-const { EventEmitter } = require('events')
-const { createCFS } = require('./create')
-const randombytes = require('randombytes')
 const Connections = require('connections')
-const isBrowser = require('is-browser')
+const randombytes = require('randombytes')
 const discovery = require('discovery-swarm')
-const mutexify = require('mutexify')
-const drives = require('./drives')
-const crypto = require('./crypto')
+const isBrowser = require('is-browser')
+const toBuffer = require('to-buffer')
 const debug = require('debug')('cfsnet:swarm')
 const lucas = require('lucas-series')
+const Batch = require('batch')
 const ipify = require('ipify')
+const turbo = require('turbo-net')
 const pify = require('pify')
-const pump = require('pump')
 const ip = require('ip')
 
+const { createCFSSignalHub } = require('./signalhub')
 const {
   createCFSWebSocketServer,
+  createCFSWebSocketStream,
   createCFSWebSocket,
 } = require('./ws')
 
-const kMaxWebSocketConnectRetries = 5
-const kTopicLeaveOp = 'leave'
-const kTopicJoinOp = 'join'
+const kCFSDiscoverySwarmWebSocketPort = 6888
+const kCFSDiscoverySwarmPort = 6889
+const kLucasRetries = [...lucas(0, 4)].map(i => i * 1000)
 
-function createDiscoveryKeyAndId({
-  cfs = null,
-  partition = 'home',
-} = {}) {
-  let key = Buffer.concat([cfs.identifier, cfs.key])
-
-  if ('home' != partition) key = key.concat(Buffer.from(partition, 'utf8'))
-
-  const hash = crypto.sha256(key)
-  const keyPair = crypto.generateKeyPair(hash.slice(0, 64))
-
-  const discoveryKey = crypto.generateDiscoveryKey(keyPair.publicKey)
-  const discoveryId = randombytes(32)
-
-  return { discoveryKey, discoveryId }
+function noop() {}
+function toHex(v) {
+  return Buffer.isBuffer(v)
+    ? v.toString('hex')
+    : toHex(Buffer.from(v, 'hex'))
 }
 
-function createDiscoverySwarm({
-  maxConnections,
-  stream,
-  discoveryId,
-  dns,
-  dht,
-  discoveryKey,
-  port
+function bootstrapify(host) {
+  if ('string' === typeof host) {
+    const parts = host.split(':')
+    return { host: parts[0], port: parts[1] || 6881 }
+  }
+  return host
+}
+
+async function createCFSDiscoverySwarm({
+  maxConnections = 0,
+  stream = noop,
+  port = kCFSDiscoverySwarmPort,
+  dns = {},
+  dht = {},
+  tcp = true,
+  utp = true,
+  ws = { port: kCFSDiscoverySwarmWebSocketPort }
 }) {
+  const id = randombytes(32)
+  const hubs = {}
+  const banned = {}
+  const signals = {}
   const swarm = discovery({
     maxConnections,
     stream,
-    id: discoveryId,
+    id,
     hash: false,
-    dns: {
+    tcp: isBrowser ? false : tcp,
+    utp: isBrowser ? false : utp,
+    dns: isBrowser ? false : {
       ttl: dns.ttl || 30,
       limit: dns.limit || 1000,
       loopback: null != dns.loopback ? dns.loopback : false,
       multicast: null != dns.multicast ? dns.multicast : true,
       domain: dns.domain || 'cfs.local',
-      server: dns.server || [
-        '127.0.0.1',
-
-        // @TODO(werle): move these to `cfs-cli'
-        'cfa-alpha.us-east-1.littlstar.com',
-        'cfa-beta.us-east-1.littlstar.com',
-        'cfa-gamma.us-east-1.littlstar.com',
-        'dns.us-east-1.littlstar.com',
-      ],
+      server: dns.server || ['127.0.0.1'],
     },
 
-    dht: {
+    dht: isBrowser ? false : {
       maxPeers: dht.maxPeers || 10000,
       maxTables: dht.maxTables || 10000,
-      bootstrap: dht.bootstrap || [
-        { host: '127.0.0.1', port: 6881 },
-
-        // @TODO(werle): move these to `cfs-cli'
-        { host: 'dht.us-east-1.littlstar.com', port: 6881 },
-        { host: 'cfa-alpha.us-east-1.littlstar.com', port: 6881 },
-        { host: 'cfa-beta.us-east-1.littlstar.com', port: 6881 },
-        { host: 'cfa-gamma.us-east-1.littlstar.com', port: 6881 },
-      ],
+      bootstrap: [{ host: '127.0.0.1', port: 6881 }]
+        .concat(Array.isArray(dht.bootstrap)
+          ? dht.bootstrap.map(bootstrapify)
+          : dht.bootstrap)
+        .filter(Boolean)
     }
   })
 
-  swarm.join(discoveryKey.toString('hex'))
-  swarm.listen(port || 0, onlisten)
-
-  function onlisten(err) {
-    if (err) {
-      swarm.listen(0)
-    }
-  }
-
-  return swarm
-}
-
-/**
- * Creates a CFS discovery network swarm for specified partition
- *
- * @public
- * @param {?(Object)} opts
- * @param {?(Object)} opts.cfs
- * @param {?(Object)} opts.key
- * @param {?(Object)} opts.id
- * @param {?(String)} opts.partition  Partition to create discovery swarm for
- * @param {?(Object)} opts.download
- * @param {?(Object)} opts.upload
- * @param {?(Object)} opts.dht
- * @param {?(Object)} opts.dns
- *
- * @return {HyperDiscovery}
- */
-
-async function createCFSDiscoverySwarm({
-  maxConnections = 60,
-  signalhub = null,
-  partition = 'home',
-  download = true,
-  upload = true,
-  live = true,
-  port = 0,
-  wrtc = null, // optional WebRTC implementation for node
-  dns = {},
-  dht = {},
-  cfs = null,
-  key = null,
-  id = null,
-  ws = { bootstrap: null, port: 0 },
-} = {}) {
-  id = id || (cfs && cfs.identifier) || null
-  key = (key && normalizeCFSKey(key)) || (cfs && cfs.key.toString('hex')) || null
-  cfs = cfs || await createCFS({ id, key })
-
-  if (!id) {
-    debug('swarm: Waiting for identifier', cfs.identifier)
-    id = await new Promise(resolve => cfs.once('id', resolve))
-  }
-
-  const ping = 'ws-ping'
-  const ack = 'ws-ack'
-
-  const { discoveryKey, discoveryId } = createDiscoveryKeyAndId({ cfs, partition })
-
-  const lock = { heartbeat: mutexify(), pingpong: mutexify() }
-
-  if ('home' != partition) {
-    const topic = await createCFSSignalHub({ discoveryKey: partition })
-
-    debug('topic: broadcast: %s', discoveryKey)
-    try { topic.broadcast({ discoveryKey, key }) } catch (err) { debug('topic: broadcast: error:', err) }
-  }
-
-  const uid = discoveryId.toString('hex')
-
-  let swarm = null
-
-  const hub = await createCFSSignalHub({ discoveryKey })
-
-  if (false == isBrowser) {
-    swarm = createDiscoverySwarm({
-      dns,
-      dht,
-      discoveryKey,
-      discoveryId,
-      stream: stream(partition),
-      port,
-    })
-  }
-
-  if (null == swarm) {
-    // polyfil "swarm"
-    swarm = Object.assign(new EventEmitter(), {
-      close(cb) {
-        process.nextTick(() => this.emit('close'))
-        if (cb) { process.nextTick(cb) }
-      }
-    })
-  }
-
-  if (false !== ws) {
-    if (false == isBrowser) {
-      const wss = await createCFSWebSocketServer(ws)
-      const wsConnections = Connections(wss)
-      wss.setMaxListeners(Infinity)
-      swarm.on('close', () => wss.close())
-      hub.subscribe(ping).on('data', async (req) => {
-        debug('me:', { id: uid })
-        debug('ping:', req)
-        try {
-          const address = ip.address()
-          const { port } = wss._server.address()
-          const localAddress = address
-          const remoteAddress = await ipify()
-          const res = {
-            remoteAddress, localAddress, address, port, id: uid
-          }
-          hub.broadcast(ack, res)
-        } catch (err) {
-          debug('ping: error:', err)
-        }
-      })
-
-      wss.on('connection', (socket) => {
-        const { port } = wss._server.address()
-        const info = { port, address: 'websocket' }
-        wsConnections.add(socket)
-        swarm.emit('connection', socket, info)
-        socket.pipe(stream(partition)()).pipe(socket)
-        socket.once('error', (err) => {
-          debug('wss: connection: socket: error:', err)
-          swarm.emit('error', err)
-        })
-      })
-
-      wss.on('error', (err) => {
-        debug('wss: error:', err)
-        swarm.emit('error', err)
-      })
-    }
-
-    const channel = hub.subscribe(ack)
-    const peersSeen = {}
-    const connected = []
-    const connections = swarm.connections || []
-    swarm.connections = connections
-
-    const L = lucas(0)
-    let interval = 0
-
-    heartbeat()
-
-    function heartbeat() {
-      lock.heartbeat((release) => {
-        channel.removeListener('data', onack)
-        channel.on('data', onack)
-        const { value } = L.next()
-        const wait = 500 * value
-        debug('heartbeat: wait=%s', wait)
-        pingpong() // init ping
-        clearInterval(interval)
-        interval = setInterval(pingpong, wait)
-        setTimeout(release, wait)
-      })
-    }
-
-    if (ws && ws.bootstrap) {
-      ws = Array.isArray(ws.bootstrap) ? ws.bootstrap : [ws.bootstrap]
-      for (const bootstrap of ws.bootstrap) {
-        await connect(bootstrap)
-      }
-    }
-
-    async function onack(res) {
-      if (uid != res.id) {
-        debug('onack')
-        clearInterval(interval)
-        channel.removeListener('data', onack)
-        try { await connect(res) } catch (err) { debug('onack: connect: error:', err) }
-      }
-    }
-
-    async function connect(info, retries) {
-      if (null == retries) {
-        retries = kMaxWebSocketConnectRetries
-      } else if (0 === retries) {
-        return heartbeat()
-      }
-
-      if (maxConnections && connections.length >= maxConnections) {
-        return heartbeat()
-      }
-
-      debug('connect:', info)
-
-      if (info && info.port) {
-        if (info.remoteAddress) {
-          const host = `ws://${info.remoteAddress}:${info.port}`
-          try { return await pify(tryConnect)(host) } catch (err) { debug('connect: error:', err) }
-        }
-
-        if (info.localAddress) {
-          const host = `ws://${info.localAddress}:${info.port}`
-          try { return await pify(tryConnect)(host) } catch (err) { debug('connect: error:', err) }
-        }
-
-        if (info.address && info.address != info.localAddress) {
-          const host = `ws://${info.address}:${info.port}`
-          try { return await pify(tryConnect)(host) } catch (err) { debug('connect: error:', err) }
-        }
-
-        if (retries && 'number' === typeof retries) {
-          const retry = kMaxWebSocketConnectRetries - retries
-          const wait = [...lucas(retry, kMaxWebSocketConnectRetries)][retry]
-          setTimeout(() => connect(info, --retries), wait)
-        }
-      }
-
-      async function tryConnect(host, cb) {
-        if (connected.includes(host)) {
-          return cb(new Error('Already connected'))
-        }
-
-        debug('connect: try:', host)
-        const socket = await createCFSWebSocket({ host })
-        socket.once('connect', () => cb(null))
-        socket.once('error', (err) => {
-          cleanup()
-          cb(err)
-        })
-
-        socket.on('close', () => {
-          cleanup()
-          if (0 == connections.length) {
-            heartbeat()
-          }
-        })
-
-        socket.on('connect', () => {
-          connected.push(host)
-          connections.push(socket)
-          swarm.emit('connection', socket, info)
-          debug('socket: connect')
-          socket.pipe(stream(partition)()).pipe(socket)
-        })
-
-        function cleanup() {
-          connections.splice(connections.indexOf(socket), 1)
-          // cool off
-          setTimeout(() => {
-            connected.splice(connected.indexOf(host), 1)
-          }, 3000)
-        }
-      }
-    }
-  }
-
-  if (false !== wrtc) {
-    // TODO(werle): provide ICE/STUN servers
-    const webrtcSwarm = createWebRTCSwarm(hub, { wrtc })
-    swarm.on('close', () => { webrtcSwarm.close() })
-    webrtcSwarm.on('peer', (peer, id) => {
-      debug('webrtc: peer:', id)
-      swarm.emit('connection', peer, { id })
-      peer.pipe(stream(partition)()).pipe(peer).on('error', (err) => {
-        debug('webrtc: peer: replicate: error:', err)
-      })
-    })
-  }
-
   swarm.setMaxListeners(Infinity)
-  swarm.on('error', onerror)
 
-  return swarm
-
-  function stream(partition = 'home') {
-    return function ({
-      download,
-      upload,
-      live,
-    } = {}) {
-      return cfs.replicate(partition || 'home', {
-        download,
-        upload,
-        live,
-      }).on('error', (err) => {
-        swarm.emit('error', err)
-      })
-    }
-  }
-
-  function pingpong() {
-    let released = false
-    lock.pingpong((release) => {
-      debug('pingpong: ', uid)
-      try {
-        hub.broadcast(ping, { id: uid }, (err) => {
-          if (err) { debug('pingpong: error:', err) }
-          done()
-        })
-      } catch (err) {
-        debug('pingpong: error:', err)
-        release()
-      }
-
-      function done() {
-        if (!released) { release() }
-        released = true
+  if (false == isBrowser && (tcp || utp)) {
+    await new Promise((resolve) => {
+      swarm.once('error', onlisten)
+      try { swarm.listen(port || 0, onlisten) } catch (err) { onlisten(err) }
+      function onlisten(err) {
+        swarm.removeListener('error', onlisten)
+        if (err) { swarm.listen(0, resolve) } else { resolve() }
       }
     })
   }
 
-  function onerror(err) {
-    debug('error:', err)
+  let wss = null
+  if (false !== ws) {
+    try {
+      void await (async function init(port) {
+        debug('ws: init: port=%s', port)
+        const server = turbo.createServer()
+        server.listen(port, (err) => {
+          server.on('error', (err) => { swarm.emit('error', err) })
+        })
+        wss = await createCFSWebSocketServer({ server })
+        wss.connections = Connections(wss)
+        wss.on('error', (err) => {
+          if (err && 'EADDRINUSE' == err.code) { init(0) }
+        })
+      }((ws || {}).port || 0))
+    } catch (err) { }
+
+    wss.setMaxListeners(Infinity)
+    swarm.on('close', () => wss.close())
+    wss._server.on('connection', (socket, req) => {
+      const { host } = req.headers
+      const address = host.split(':')[0]
+      const port = host.split(':')[1]
+      const id = req.headers['x-peer-id']
+      const discoveryKey = req.headers['x-discovery-key']
+
+      // invalid request
+      if (!id || !discoveryKey || !address || !port) {
+        return socket.close()
+      }
+
+      // already connected
+      if (id in signals || id in banned) {
+        return socket.close()
+      }
+
+      const wStream = createCFSWebSocketStream({ socket })
+      const signal = accept({ id, address, port })
+      const channel = Buffer.from(discoveryKey, 'hex')
+      const peer = {
+        type: 'ws',
+        initiator: false,
+        id: `${signal.remoteAddress}@${toHex(channel)}`,
+        host: signal.remoteAddress,
+        port: signal.port,
+        channel,
+        retries: signal.retries,
+      }
+
+      swarm.emit('connection', wStream, peer)
+      wStream.pipe(stream(peer)).pipe(wStream)
+    })
+  }
+
+  const _join = swarm.join.bind(swarm)
+  const _leave = swarm.leave.bind(swarm)
+
+  return Object.assign(swarm, {
+    join, leave
+  })
+
+  function join(name, opts, cb) {
+    const batch = new Batch()
+    if ('function' === typeof opts) {
+      cb = opts
+      opts = {}
+    }
+
+    opts = opts || {}
+
+    if ('string' === typeof name) {
+      name = toBuffer(name)
+    }
+
+    if (false == isBrowser && (tcp || utp) && (dht || dns)) {
+      batch.push((done) => {
+        _join(name, opts, done)
+      })
+    }
+
+    if (false == name in hubs) {
+      hubs[toHex(name)] = createCFSSignalHub({ discoveryKey: name })
+    }
+
+    if (false !== ws) {
+      batch.push(async (done) => {
+        const hub = hubs[toHex(name)]
+        const address = ip.address()
+        const { port } = wss._server.address() || {}
+        const localAddress = address
+        const remoteAddress = await ipify()
+        const peer = signalify({
+          id, port, address, remoteAddress, localAddress
+        })
+        process.nextTick(done)
+        hub.broadcast('join', peer)
+      })
+    }
+
+    hubs[toHex(name)].subscribe('join').on('data', async (info) => {
+      if (!info) { return }
+      if (toHex(id) == toHex(info.id)) { return }
+      if (info.id in signals || info.id in banned) { return }
+
+      // store easy signal references
+      const signal = accept(info)
+
+      const peer = {
+        type: 'ws',
+        initiator: true,
+        id: `${signal.remoteAddress}@${toHex(name)}`,
+        host: signal.remoteAddress,
+        port: signal.port,
+        channel: Buffer.from(name),
+        retries: signal.retries,
+      }
+
+      swarm.emit('peer', peer)
+
+      return kick()
+
+      async function kick() {
+        let socket = null
+        try { socket = await pify(connect)(signal.localAddress, signal.port) } catch (err) {
+          try { socket = await pify(connect)(signal.remoteAddress, signal.port) } catch (err) {
+            const retry = kLucasRetries[signal.retries++]
+            if ('number' === typeof retry) {
+              return setTimeout(kick, retry)
+            }
+            ban(signal)
+          }
+        }
+
+        if (socket) {
+          swarm.emit('connection', socket, peer)
+          socket.pipe(stream(peer)).pipe(socket)
+        }
+      }
+
+      function connect(host, port, cb) {
+        host = `ws://${host}:${port}`
+        const socket = createCFSWebSocket({
+          host,
+          headers: {
+            'x-discovery-key': toHex(name),
+            'x-peer-id': toHex(id),
+          }
+        })
+        socket.once('error', err => cb(err))
+        socket.once('close', () => forget(signal))
+        socket.once('connect', () => {
+          if (host in signals) { socket.close() }
+          cb(null, socket)
+        })
+      }
+    })
+
+    return batch.end((err) => {
+      if (err) {
+        swarm.emit('error', err)
+        return (cb || noop)(err)
+      }
+      debug('join: %s', toHex(name), opts)
+      swarm.emit('join', name)
+    })
+  }
+
+  function leave(name) {
+    debug('leave: %s', toHex(name))
+    swarm.emit('leave', name)
+    return _leave(name)
+  }
+
+  function signalify({
+    remoteAddress, localAddress, address,
+    remotePort, localPort, port,
+    retries, id,
+  }) {
+    return {
+      remoteAddress: remoteAddress || localAddress || address || null,
+      localAddress: localAddress || address || null,
+      address: address || localAddress || remoteAddress || null,
+      port: port || remotePort || localPort || 0,
+      retries: retries || 0,
+      id: Buffer.isBuffer(id) ? toHex(id) : 'string' === typeof id ? id : null,
+    }
+  }
+
+  function accept(signal) {
+    signal = signalify(signal)
+    signals[`${signal.remoteAddress}:${signal.port}`] = signal
+    signals[`${signal.localAddress}:${signal.port}`] = signal
+    signals[signal.remoteAddress + signal.port] = signal
+    signals[signal.localAddress + signal.port] = signal
+    signals[signal.id] = signal
+    return signal
+  }
+
+  function forget(signal) {
+    signal = signalify(signal)
+    delete signals[`${signal.remoteAddress}:${signal.port}`]
+    delete signals[`${signal.localAddress}:${signal.port}`]
+    delete signals[signal.remoteAddress + signal.port]
+    delete signals[signal.localAddress + signal.port]
+    delete signals[signal.id]
+    return signal
+  }
+
+  function ban(signal) {
+    clearTimeout(signal.timeout)
+    signal = signalify(signal)
+    forget(signal)
+    banned[`${signal.remoteAddress}:${signal.port}`] = signal
+    banned[`${signal.localAddress}:${signal.port}`] = signal
+    banned[signal.remoteAddress + signal.port] = signal
+    banned[signal.localAddress + signal.port] = signal
+    banned[signal.id] = signal
+    signal.timeout = setTimeout(() => {
+      delete banned[`${signal.remoteAddress}:${signal.port}`]
+      delete banned[`${signal.localAddress}:${signal.port}`]
+      delete banned[signal.remoteAddress + signal.port]
+      delete banned[signal.localAddress + signal.port]
+      delete banned[signal.id]
+    }, 10000)
+    return signal
   }
 }
 
 module.exports = {
-  createCFSDiscoverySwarm,
+  createCFSDiscoverySwarm
 }
