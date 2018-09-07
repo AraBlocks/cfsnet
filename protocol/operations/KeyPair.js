@@ -1,5 +1,3 @@
-
-
 const { BadRequestError } = require('../error')
 const messages = require('../messages')
 const crypto = require('../../crypto')

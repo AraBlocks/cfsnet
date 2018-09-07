@@ -1,5 +1,3 @@
-
-
 class CFSError extends Error {
   constuctor({ code, name, message } = {}) {
     super(message)

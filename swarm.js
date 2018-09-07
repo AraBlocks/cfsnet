@@ -20,7 +20,7 @@ const {
 
 const kCFSDiscoverySwarmWebSocketPort = 6888
 const kCFSDiscoverySwarmPort = 6889
-const kLucasRetries = [...lucas(0, 4)].map(i => i * 1000)
+const kLucasRetries = [ ...lucas(0, 4) ].map(i => i * 1000)
 
 function noop() {}
 function toHex(v) {
@@ -64,13 +64,13 @@ async function createCFSDiscoverySwarm({
       loopback: null != dns.loopback ? dns.loopback : false,
       multicast: null != dns.multicast ? dns.multicast : true,
       domain: dns.domain || 'cfs.local',
-      server: dns.server || ['127.0.0.1'],
+      server: dns.server || [ '127.0.0.1' ],
     },
 
     dht: isBrowser ? false : {
       maxPeers: dht.maxPeers || 10000,
       maxTables: dht.maxTables || 10000,
-      bootstrap: [{ host: '127.0.0.1', port: 6881 }]
+      bootstrap: [ { host: '127.0.0.1', port: 6881 } ]
         .concat(Array.isArray(dht.bootstrap)
           ? dht.bootstrap.map(bootstrapify)
           : dht.bootstrap)

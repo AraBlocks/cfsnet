@@ -122,7 +122,7 @@ function wrap(drive) {
       if ('function' === typeof opts) {
         cb = opts
         opts = { fs: drive }
-      } else if ('object' == typeof opts){
+      } else if ('object' === typeof opts) {
         opts.fs = drive
       } else {
         opts = {

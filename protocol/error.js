@@ -1,5 +1,3 @@
-
-
 const { ErrorCode } = require('./messages')
 
 class ProtocolError extends Error {

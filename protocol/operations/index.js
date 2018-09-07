@@ -1,5 +1,3 @@
-
-
 /**
  * Exported protocol operation function handles
  */

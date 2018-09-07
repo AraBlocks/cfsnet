@@ -1,4 +1,4 @@
-const CFSError = require('./cfs-error')
+const { CFSError } = require('./cfs-error')
 
 class AccessDeniedError extends CFSError {
   constructor(message = '') {

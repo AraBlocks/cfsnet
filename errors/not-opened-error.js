@@ -1,5 +1,3 @@
-
-
 const CFSError = require('./cfs-error')
 
 class NotOpenedError extends CFSError {

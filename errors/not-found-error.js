@@ -1,5 +1,3 @@
-
-
 const CFSError = require('./cfs-error')
 
 class NotFoundError extends CFSError {

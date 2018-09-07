@@ -735,7 +735,7 @@ async function createCFS({
     name = name.replace(/^\//, '')
     secretKey = drive.metadata.secretKey || drive.key
     const prefix = Buffer.from(name)
-    const seed = Buffer.concat([prefix, secretKey])
+    const seed = Buffer.concat([ prefix, secretKey ])
     const keyPair = crypto.generateKeyPair(seed)
     await partitions.create(name, {
       sparseMetadata,

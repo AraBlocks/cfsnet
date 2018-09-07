@@ -81,7 +81,7 @@ class Protocol extends Duplex {
   }
 
   key(nonce) {
-    return crypto.blake2b(Buffer.concat([CFSNETKEY, nonce]))
+    return crypto.blake2b(Buffer.concat([ CFSNETKEY, nonce ]))
   }
 
   reply({ request, buffer, errorCode }) {
@@ -170,7 +170,7 @@ class Protocol extends Duplex {
     if (false !== ack && false == this.isClient) { return false }
     if (!nonce || 0 == nonce.length) { return false }
     if (!key || 32 != key.length) { return false }
-    const expected = crypto.blake2b(Buffer.concat([CFSNETKEY, nonce]))
+    const expected = crypto.blake2b(Buffer.concat([ CFSNETKEY, nonce ]))
     return 0 == Buffer.compare(expected, key)
   }
 
