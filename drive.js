@@ -1,3 +1,4 @@
+/* eslint-disable global-require */
 const { normalizeCFSKey } = require('./key')
 const hyperdrive = require('hyperdrive')
 const mkdirp = require('mkdirp')
@@ -5,26 +6,28 @@ const rimraf = require('rimraf')
 const rmdir = require('rmdir')
 const debug = require('debug')('cfsnet:create:drive')
 
-async function createCFSDrive({
-  key = null,
-  path = null,
-  sparse = true,
-  latest = true,
-  storage = null,
-  revision = null,
-  secretKey = null,
-  sparseMetadata = false
-} = {}) {
-  key = normalizeCFSKey(key)
-
+async function createCFSDrive(opts) {
   let drive = null
+
+  const {
+    sparseMetadata = false,
+    secretKey = null,
+    revision = null,
+    storage = null,
+    latest = true,
+    sparse = true,
+    path = null,
+  } = opts
+
+  const key = normalizeCFSKey(opts.key)
 
   drive = hyperdrive(createStorage(), key || undefined, {
     secretKey,
-    sparse: Boolean(sparse),
-    latest: Boolean(latest),
-    version: revision,
+
     sparseMetadata: Boolean(sparseMetadata),
+    version: revision,
+    latest: Boolean(latest),
+    sparse: Boolean(sparse),
   })
 
   // wait for drive to be ready
@@ -34,7 +37,7 @@ async function createCFSDrive({
   })
 
   debug(
-    "Initializing CFS HyperDrive instance at '%s' with key '%s'",
+    'Initializing CFS HyperDrive instance at "%s" with key "%s"',
     storage ? '<random access>' : path,
     (drive.key || Buffer.from(0)).toString('hex')
   )
@@ -45,6 +48,7 @@ async function createCFSDrive({
     if ('function' === typeof storage) {
       return filename => storage(filename, drive, path)
     }
+
     return storage || path
   }
 }
@@ -52,27 +56,23 @@ async function createCFSDrive({
 function wrap(drive) {
   drive.setMaxListeners(Infinity)
   const methods = [
-
-    'read',
     'open',
     'close',
-    'unlink',
-
+    'read',
     'stat',
     'lstat',
-
+    'access',
+    'unlink',
     'rmdir',
     'mkdir',
     'readdir',
+    'readFile',
+    'writeFile',
 
     'ready',
-    'access',
     'history',
     'checkout',
     'download',
-
-    'readFile',
-    'writeFile',
 
     'createDiffStream',
     'createReadStream',
@@ -82,20 +82,22 @@ function wrap(drive) {
   const fs = {}
   const fsdebug = require('debug')('cfsnet:drive:fs')
 
-  Object.assign(drive, methods.reduce((d, m) => {
-    fs[m] = drive[m].bind(drive)
-    return Object.assign(d, {
-      [m]: (...args) => {
+  Object.assign(drive, methods.reduce((proxy, method) => {
+    fs[method] = drive[method].bind(drive)
+    return Object.assign(proxy, {
+      [method]: (...args) => {
         if ('function' !== typeof args[0]) {
-          fsdebug('call %s', m, String(args[0]))
+          fsdebug('call %s', method, String(args[0]))
         }
-        return fs[m](...args)
+
+        return fs[method](...args)
       }
     })
   }, {}))
 
   // monkey patch to throw correct fs error
   const { mkdir, rmdir, checkout } = drive
+
   // extra useful methods
   Object.assign(drive, {
     rmdir(dir, cb) {

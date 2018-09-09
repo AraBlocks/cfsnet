@@ -70,6 +70,7 @@ class Protocol extends Duplex {
   _read(size) {
     // do nothing
     void size
+    void this
   }
 
   _parse(chunk, cb) {
@@ -83,16 +84,18 @@ class Protocol extends Duplex {
   }
 
   nonce() {
+    void this
     return crypto.nonce()
   }
 
   key(nonce) {
+    void this
     return crypto.blake2b(Buffer.concat([ CFSNETKEY, nonce ]))
   }
 
   reply({ request, buffer, errorCode }) {
     if (null == errorCode) {
-      errorCode = message.ErrorCode.NoError
+      errorCode = messages.ErrorCode.NoError
     }
 
     const { drive, operation } = request
@@ -134,7 +137,7 @@ class Protocol extends Duplex {
       }
 
       // ensure request buffer
-      if (null == buffer || false == Buffer.isBuffer(buffer)) {
+      if (null == buffer || false === Buffer.isBuffer(buffer)) {
         buffer = kZeroBuffer
       }
 
@@ -144,8 +147,12 @@ class Protocol extends Duplex {
       }
 
       this.on('response', onresponse)
+
       // emit request object with sensitive properties set to the zero buffer
-      this.emit('request', extend(true, {}, request, { drive: { secretKey: kZeroBuffer } }))
+      this.emit('request', extend(true, {}, request, {
+        drive: { secretKey: kZeroBuffer }
+      }))
+
       this.push(messages.Request.encode(request))
 
       function onresponse(res) {
@@ -154,7 +161,7 @@ class Protocol extends Duplex {
         }
 
         // verify request nonce
-        if (0 != Buffer.compare(res.request.nonce, nonce)) {
+        if (0 !== Buffer.compare(res.request.nonce, nonce)) {
           return
         }
 
@@ -162,7 +169,7 @@ class Protocol extends Duplex {
         this.removeListener('response', onresponse)
 
         // verify response nonce signature
-        if (0 == Buffer.compare(crypto.blake2b(nonce), res.nonce)) {
+        if (0 === Buffer.compare(crypto.blake2b(nonce), res.nonce)) {
           if ('function' === typeof cb) { cb(null, res) }
           resolve(res)
         } else {
@@ -173,21 +180,28 @@ class Protocol extends Duplex {
   }
 
   verify({ nonce, key, ack }) {
-    if (false !== ack && false == this.isClient) { return false }
-    if (!nonce || 0 == nonce.length) { return false }
-    if (!key || 32 != key.length) { return false }
+    if (false !== ack && false === this.isClient) { return false }
+    if (!nonce || 0 === nonce.length) { return false }
+    if (!key || 32 !== key.length) { return false }
     const expected = crypto.blake2b(Buffer.concat([ CFSNETKEY, nonce ]))
-    return 0 == Buffer.compare(expected, key)
+    return 0 === Buffer.compare(expected, key)
   }
 
   handshake(cb) {
-    if (false == this.needsHandshake) { return false }
+    if (false === this.needsHandshake) {
+      return false
+    }
+
     const nonce = this.nonce()
     const key = this.key(nonce)
     const ack = false
     return new Promise((resolve, reject) => {
       this.isClient = true
-      if ('function' === typeof cb) { this.once('error', cb) }
+
+      if ('function' === typeof cb) {
+        this.once('error', cb)
+      }
+
       this.once('error', reject)
       this.once('handshake', resolve)
       this.once('handshake', (handshake) => {
@@ -198,7 +212,11 @@ class Protocol extends Duplex {
         }
       })
 
-      this.push(messages.Handshake.encode({ nonce, key, ack }))
+      this.push(messages.Handshake.encode({
+        nonce,
+        key,
+        ack
+      }))
     })
   }
 
@@ -208,7 +226,11 @@ class Protocol extends Duplex {
       this.destroy()
       this.once('end', () => this.emit('close'))
       this.once('error', reject)
-      if ('function' === typeof cb) { this.once('error', cb) }
+
+      if ('function' === typeof cb) {
+        this.once('error', cb)
+      }
+
       function onend() {
         if ('function' === typeof cb) { cb(null) }
         this.once('error', cb)
@@ -221,28 +243,28 @@ class Protocol extends Duplex {
   async onhandshake(handshake, cb) {
     const { nonce, key, ack } = handshake
     debug('onhandshake: %s: %s: ack:', toHex(key), toHex(nonce), ack)
-    if (!nonce || 0 == nonce.length) {
+    if (!nonce || 0 === nonce.length) {
       return cb(new ProtocolError(
         ProtocolError.BAD_HANDSHAKE_NONCE,
         'Invalid or missing nonce in handshake'
       ))
     }
 
-    if (!key || 0 == key.length) {
+    if (!key || 0 === key.length) {
       return cb(new ProtocolError(
         ProtocolError.BAD_HANDSHAKE_KEY,
         'Invalid or missing key in handshake'
       ))
     }
 
-    if (false == this.isClient && ack !== false) {
+    if (false === this.isClient && ack !== false) {
       return cb(new ProtocolError(
         ProtocolError.BAD_HANDSHAKE_ACK,
         'Invalid or missing ack in handshake'
       ))
     }
 
-    if (false == this.isClient && false === this.verify(handshake)) {
+    if (false === this.isClient && false === this.verify(handshake)) {
       return cb(new ProtocolError(
         ProtocolError.BAD_HANDSHAKE_VERIFY,
         'Verification failed in handshake'
@@ -275,7 +297,7 @@ class Protocol extends Duplex {
 
     debug('onrequest: %s: %s:', toHex(nonce), opname(operation))
 
-    if (!nonce || 0 == nonce.length) {
+    if (!nonce || 0 === nonce.length) {
       return onerror(BAD_REQUEST_NONCE, 'Invalid or missing nonce in request')
     }
 
@@ -284,7 +306,7 @@ class Protocol extends Duplex {
     }
 
     if (drive) {
-      if (drive.key && kDriveKeyLength != drive.key.length) {
+      if (drive.key && kDriveKeyLength !== drive.key.length) {
         return onerror(BAD_REQUEST_DRIVE_KEY_LENGTH, 'Invalid key length')
       }
 
@@ -318,7 +340,7 @@ class Protocol extends Duplex {
       })
     } else if (operation > messages.Operation.NoOperation) {
       for (const k in messages.Operation) {
-        if (operation == messages.Operation[k]) {
+        if (operation === messages.Operation[k]) {
           return this.onoperation(operation, request, buffer, cb)
         }
       }

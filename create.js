@@ -1,3 +1,5 @@
+/* eslint-disable global-require */
+/* eslint-disable no-await-in-loop */
 const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
 const { createCFSDrive } = require('./drive')
@@ -5,6 +7,7 @@ const { resolve } = require('path')
 const JSONStream = require('streaming-json-stringify')
 const constants = require('./constants')
 const isBrowser = require('is-browser')
+const isBuffer = require('is-buffer')
 const unixify = require('unixify')
 const pumpcat = require('pumpcat')
 const drives = require('./drives')
@@ -19,26 +22,10 @@ const raf = require('random-access-file')
 const ram = require('random-access-memory')
 const ms = require('ms')
 
-const LOG_EVENT_TIMEOUT = ms('10m') // eslint-disable-line no-unused-vars
+const $PARTITION_NAME = Symbol('partition name')
 const EVENT_LOG_FILE = '/var/log/events'
 
-const $name = Symbol('partition.name')
-
 const identity = i => i
-
-/**
- * Politely ensure the root CFS directory has access, otherwise
- * create it.
- */
-async function ensureCFSRootDirectoryAccess({ fs = require('fs') }) {
-  debug("Ensuring root CFS directory '%s' has access", env.CFS_ROOT_DIR)
-  try {
-    await pify(fs.access)(env.CFS_ROOT_DIR)
-  } catch (err) {
-    // eslint-disable-next-line no-void
-    void (err, await pify(mkdirp)(env.CFS_ROOT_DIR, { fs }))
-  }
-}
 
 /**
  * This function will create a CFS based on some input identifier if it does
@@ -46,38 +33,35 @@ async function ensureCFSRootDirectoryAccess({ fs = require('fs') }) {
  * hash string with a hex encoding that will be used to create the
  * CFS storage ID.
  *
- * The "public key" is exposed on the HyperDrive instance as the property
- * `.key`. An optional "discovery public key" can be given for replication
+ * The 'public key' is exposed on the HyperDrive instance as the property
+ * `.key`. An optional 'discovery public key' can be given for replication
  */
-async function createCFS({
-  fs = require('fs'),
-  id = null,
-  key = null,
-  path = null,
-  latest = false,
-  sparse = false,
-  shallow = false,
-  storage = null,
-  revision = null,
-  secretKey = null,
-  eventStream = true,
-  sparseMetadata = false,
-}) {
-  if ('string' === typeof storage && false == isBrowser) {
-    await ensureCFSRootDirectoryAccess({ fs })
-  }
+async function createCFS(opts) {
+  const {
+    sparseMetadata = false,
+    eventStream = true,
+    revision = null,
+    shallow = false,
+    storage = null,
+    sparse = false,
+    fs = require('fs'),
+    id = null,
+  } = opts
 
-  key = normalizeCFSKey(key)
-  path = path || createCFSKeyPath({ id, key })
+  let {
+    latest = false,
+    secretKey = null,
+  } = opts
+
+  const key = normalizeCFSKey(opts.key)
+  const path = opts.path || createCFSKeyPath({ id, key })
 
   if (path in drives) {
     return drives[path]
   }
 
-  if (id) {
-    debug("Creating CFS drive from identifier '%s' with key '%s'", id, key)
-  } else {
-    debug("Creating CFS drive at path '%s' with key '%s'", path, key)
+  if ('string' === typeof storage && false === isBrowser) {
+    await ensureCFSRootDirectoryAccess({ fs })
   }
 
   if (revision && 'number' === typeof revision) {
@@ -86,11 +70,13 @@ async function createCFS({
 
   // root HyperDrive instance
   const drive = await createCFSDrive({
-    key,
-    path,
-    secretKey,
     latest: true,
-    storage(file, drive, path) { // eslint-disable-line no-shadow
+
+    secretKey,
+    path,
+    key,
+
+    storage(file, drive, path) {
       if (file.includes('content')) {
         return ram()
       } else if ('function' === typeof storage) {
@@ -100,162 +86,26 @@ async function createCFS({
     }
   })
 
+  debug('drive created:', id, key, path)
+
   // this needs to occur so a key can be generated
-  debug('Ensuring CFS drive is ready')
+  debug('drive ready:', id, key)
   await pify(drive.ready)()
+  await ensureDriveRoot(drive)
 
-  /**
-   * this ensures "root" directory actually has a "Stat" in
-   * its metatdata
-   */
-  if (drive.writable) {
-    try {
-      await pify(drive.access)('/')
-      const { mtime, ctime } = await pify(drive.stat)('/')
-      if (0 == Number(mtime) || 0 == Number(ctime)) {
-        // just throw something to switch to `catch' context
-        throw new Error()
-      }
-    } catch (err) {
-      try {
-        await pify(drive.mkdir)('/')
-      } catch (error) {
-        debug(error)
-      }
-    }
-  }
-
-  debug('Caching CFS drive in CFSMAP')
   drives[path] = drive
 
+  const root = createRoot(drive)
+  const partitions = createPartitionManager(path, root, drive)
+
   const fileDescriptors = {}
-  let identifier = id // eslint-disable-line no-nested-ternary
-    ? (Buffer.isBuffer(id) ? id : Buffer.from(id))
-    : null
+  let identifier = null
 
-  const root = {
-    [$name]: 'root',
-    resolve: identity,
-    history: drive.history,
-
-    open: drive.open,
-    stat: drive.stat,
-    lstat: drive.lstat,
-    close: drive.close,
-
-    read: drive.read,
-    rmdir: drive.rmdir,
-    touch: drive.touch,
-    rimraf: drive.rimraf,
-    unlink: drive.unlink,
-    mkdir: drive.mkdir,
-    mkdirp: drive.mkdirp,
-    readdir: drive.readdir,
-
-    access: drive.access,
-    download: drive.download,
-    readFile: drive.readFile,
-    writeFile: drive.writeFile,
-
-    createDiffStream: drive.createDiffStream,
-    createReadStream: drive.createReadStream,
-    createWriteStream: drive.createWriteStream,
+  if (isBuffer(id)) {
+    identifier = id
+  } else if (id) {
+    identifier = Buffer.from(id)
   }
-
-  const partitions = Object.create({
-
-    resolve(filename) {
-      const partitions = this // eslint-disable-line no-shadow
-      const resolved = drive.resolve(filename)
-      debug('partitions: resolve: %s -> %s', filename, resolved)
-      if ('/' == resolved) { return root }
-      return parse(resolved) || root
-
-      // eslint-disable-next-line no-shadow
-      function parse(filename) { // eslint-disable-line consistent-return
-        // Strip Win32 drives from a filename
-        function stripWinDrives(winFilename) {
-          const regex = /^.:/
-          return winFilename.replace(regex, '')
-        }
-
-        // Determine if the filename is a top level directory
-        function isTopDir(topFilename) {
-          return ('/' === topFilename[0] || '\\' === topFilename[0])
-        }
-
-        if ('win32' === process.platform) {
-          filename = stripWinDrives(filename)
-        }
-
-        if (filename in partitions) {
-          debug('partitions: resolve: parse:', filename)
-          return partitions[filename]
-        } else if (isTopDir(filename)) {
-          for (let i = 1; i < filename.length; ++i) {
-            const slice = filename.slice(1, i + 1)
-            if (slice in partitions) {
-              debug('partitions: resolve: parse:', slice)
-              return partitions[slice]
-            }
-          }
-          return null
-        }
-      }
-    },
-
-    async create(name, opts) {
-      name = name.replace(/^\//, '')
-
-      if (false == name in this) {
-        Object.assign(opts, { path: resolve(path, name) })
-        const partition = await createCFSDrive(opts)
-        this[name] = partition
-        this[name][$name] = name
-
-        // wait for partition to be ready
-        await new Promise(resolve => partition.ready(resolve)) // eslint-disable-line no-shadow
-
-        // ensure partition has root access
-        try {
-          await pify(partition.access)('/')
-          const { mtime, ctime } = await pify(partition.stat)('/')
-          if (0 == Number(mtime) || 0 == Number(ctime)) {
-            // just throw something to switch to `catch' context
-            throw new Error()
-          }
-        } catch (err) {
-          if (partition.writable) {
-            try {
-              await pify(partition.mkdir)('/')
-            } catch (error) {
-              debug(error)
-            }
-          }
-        }
-
-        // ensure partition exists as child directory in root (root)
-        try { await pify(root.access)(resolve('/', name)) } catch (err) {
-          if (drive.writable) {
-            await pify(root.mkdirp)(resolve('/', name))
-          }
-        }
-
-        Object.assign(partition, {
-          resolve(filename) {
-            const regex = RegExp(`^/${name}`)
-            const resolved = unixify(filename).replace(regex, '')
-            debug('partition %s: resolve: %s -> %s', filename, resolved)
-            return resolved
-          }
-        })
-
-        drive.emit('partition', this[name], name)
-      }
-
-      return this[name]
-    }
-  })
 
   Object.defineProperties(drive, Object.getOwnPropertyDescriptors({
     get fileDescriptors() { return fileDescriptors },
@@ -323,7 +173,6 @@ async function createCFS({
         return cb(null, fd)
       }
 
-      // @TODO(werle): use a real CFS error -- UNREACHABLE
       return cb(new Error('BadOpenRequest'))
     },
 
@@ -334,7 +183,7 @@ async function createCFS({
       }
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
-      debug('partition: %s: stat: %s', partition[$name], filename)
+      debug('partition: %s: stat: %s', partition[$PARTITION_NAME], filename)
       if (filename.slice(1) in partitions) {
         return root.stat(filename, opts, cb)
       }
@@ -347,12 +196,16 @@ async function createCFS({
         cb = opts
         opts = {}
       }
+
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
-      debug('partition: %s: lstat: %s', partition[$name], filename)
+
+      debug('partition: %s: lstat: %s', partition[$PARTITION_NAME], filename)
+
       if (filename.slice(1) in partitions) {
         return root.lstat(filename, opts, cb)
       }
+
       filename = partition.resolve(filename)
       return partition.lstat(filename, opts, cb)
     },
@@ -381,10 +234,13 @@ async function createCFS({
       if (!fd || fd <= 0) {
         return cb(new Error('NotOpened'))
       }
+
       const partition = fileDescriptors[fd]
+
       if (!partition) {
         return cb(new Error('NotOpened'))
       }
+
       return partition.close(fd, cb)
     },
 
@@ -411,7 +267,7 @@ async function createCFS({
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
-      debug('partition: %s: rmdir: %s', partition[$name], filename)
+      debug('partition: %s: rmdir: %s', partition[$PARTITION_NAME], filename)
       return partition.rmdir(filename, cb)
     },
 
@@ -419,7 +275,7 @@ async function createCFS({
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
-      debug('partition: %s: touch: %s', partition[$name], filename)
+      debug('partition: %s: touch: %s', partition[$PARTITION_NAME], filename)
       return partition.touch(filename, cb)
     },
 
@@ -427,7 +283,7 @@ async function createCFS({
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
-      debug('partition: %s: rimraf: %s', partition[$name], filename)
+      debug('partition: %s: rimraf: %s', partition[$PARTITION_NAME], filename)
       return partition.rimraf(filename, cb)
     },
 
@@ -435,7 +291,7 @@ async function createCFS({
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
-      debug('partition: %s: unlink: %s', partition[$name], filename)
+      debug('partition: %s: unlink: %s', partition[$PARTITION_NAME], filename)
       return partition.unlink(filename, cb)
     },
 
@@ -447,7 +303,7 @@ async function createCFS({
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
-      debug('partition: %s: mkdir: %s', partition[$name], filename)
+      debug('partition: %s: mkdir: %s', partition[$PARTITION_NAME], filename)
       return partition.mkdir(filename, opts, cb)
     },
 
@@ -459,7 +315,7 @@ async function createCFS({
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
-      debug('partition: %s: mkdirp: %s', partition[$name], filename)
+      debug('partition: %s: mkdirp: %s', partition[$PARTITION_NAME], filename)
       return partition.mkdirp(filename, opts, cb)
     },
 
@@ -471,7 +327,7 @@ async function createCFS({
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
-      debug('partition: %s: readdir: %s', partition[$name], filename)
+      debug('partition: %s: readdir: %s', partition[$PARTITION_NAME], filename)
       return partition.readdir(filename, opts, cb)
     },
 
@@ -484,7 +340,7 @@ async function createCFS({
         cb = mode
         mode = constants.F_OK
       }
-      debug('partition: %s: access: %s', partition[$name], filename)
+      debug('partition: %s: access: %s', partition[$PARTITION_NAME], filename)
       switch (mode) {
       case constants.W_OK:
         if (true !== partition.writable) {
@@ -525,14 +381,14 @@ async function createCFS({
       if (null == filename) {
         for (const k in partitions) {
           const partition = partitions[k]
-          debug('partition: %s: download', partition[$name])
-          await pify(partition.download)() // eslint-disable-line no-await-in-loop
+          debug('partition: %s: download', partition[$PARTITION_NAME])
+          await pify(partition.download)()
         }
       } else {
         filename = drive.resolve(filename)
         const partition = partitions.resolve(filename)
         filename = partition.resolve(filename)
-        debug('partition: %s: download: %s', partition[$name], filename)
+        debug('partition: %s: download: %s', partition[$PARTITION_NAME], filename)
         return partition.download(filename, cb)
       }
     },
@@ -546,7 +402,7 @@ async function createCFS({
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
-      debug('partition: %s: readFile: %s', partition[$name], filename)
+      debug('partition: %s: readFile: %s', partition[$PARTITION_NAME], filename)
       return partition.readFile(filename, opts, cb)
     },
 
@@ -558,14 +414,14 @@ async function createCFS({
 
       if ('string' === typeof buffer) {
         buffer = Buffer.from(buffer)
-      } else if (false == Buffer.isBuffer(buffer)) {
+      } else if (false === isBuffer(buffer)) {
         return cb(new TypeError('Expecting bytes to be a Buffer'))
       }
 
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
-      debug('partition: %s: writeFile: %s', partition[$name], filename)
+      debug('partition: %s: writeFile: %s', partition[$PARTITION_NAME], filename)
       return partition.writeFile(filename, buffer, opts, cb)
     },
   }))
@@ -651,17 +507,12 @@ async function createCFS({
   home.on('update', onupdate)
   home.on('content', onupdate)
 
-  proxyEvent('append')
-  proxyEvent('appending')
-  proxyEvent('close')
-  proxyEvent('content')
-  proxyEvent('download')
-  proxyEvent('error')
-  proxyEvent('update')
-  proxyEvent('upload')
-  proxyEvent('ready')
-  proxyEvent('sync')
-  proxyEvent('syncing')
+  void [
+    'append', 'appending', 'close',
+    'content', 'download', 'error',
+    'update', 'upload', 'ready',
+    'sync', 'syncing'
+  ].map(proxyEvent)
 
   await createIdentifierFile()
   await createFileSystem()
@@ -679,18 +530,18 @@ async function createCFS({
   }
 
   async function onready() {
-    debug('onready')
+    debug('drive ready:', identifier)
   }
 
-  async function onidentifier(id) { // eslint-disable-line no-shadow
-    identifier = id
-    debug('onidentifier:', identifier)
+  async function onidentifier(newid) { // eslint-disable-line no-shadow
+    identifier = newid
     drive.emit('id', identifier)
     drive.emit('identifier', identifier)
+    debug('drive identifier:', identifier)
   }
 
   async function onupdate() {
-    debug('onupdate')
+    debug('drive update:', identifier)
     try {
       await pify(drive.access)(drive.CFSID)
       if (null == identifier) {
@@ -703,25 +554,26 @@ async function createCFS({
   }
 
   async function createFileSystem() {
-    debug('init: system')
-    debug('Ensuring file system integrity')
     if (id && drive.writable) {
       await createCFSDirectories({
         id, path, drive, key, sparse
       })
+
       await createCFSFiles({
         id, path, drive, key, sparse
       })
+
+      debug('drive init: fs')
     }
   }
 
   async function createIdentifierFile() {
-    debug('init: id')
     if (id && drive.writable) {
       try {
         await pify(drive.access)(drive.CFSID)
       } catch (err) {
         await pify(drive.writeFile)(drive.CFSID, Buffer.from(id))
+        debug('drive init: id', identifier)
       }
     } else {
       await onupdate()
@@ -729,14 +581,17 @@ async function createCFS({
   }
 
   async function createPartition(name, storageOverride) {
-    if (false == tree.partitions.includes(name)) {
+    if (false === tree.partitions.includes(name)) {
       throw new TypeError(`Invalid partition: ${name}`)
     }
+
     name = name.replace(/^\//, '')
     secretKey = drive.metadata.secretKey || drive.key
+
     const prefix = Buffer.from(name)
     const seed = Buffer.concat([ prefix, secretKey ])
     const keyPair = crypto.generateKeyPair(seed)
+
     await partitions.create(name, {
       sparseMetadata,
       sparse,
@@ -762,38 +617,200 @@ async function createCFS({
   }
 }
 
+function createRoot(drive) {
+  return {
+    [$PARTITION_NAME]: 'root',
+    resolve: identity,
+    history: drive.history,
+
+    open: drive.open,
+    stat: drive.stat,
+    lstat: drive.lstat,
+    close: drive.close,
+
+    read: drive.read,
+    rmdir: drive.rmdir,
+    touch: drive.touch,
+    rimraf: drive.rimraf,
+    unlink: drive.unlink,
+    mkdir: drive.mkdir,
+    mkdirp: drive.mkdirp,
+    readdir: drive.readdir,
+
+    access: drive.access,
+    download: drive.download,
+    readFile: drive.readFile,
+    writeFile: drive.writeFile,
+
+    createDiffStream: drive.createDiffStream,
+    createReadStream: drive.createReadStream,
+    createWriteStream: drive.createWriteStream,
+  }
+}
+
+function createPartitionManager(path, root, drive) {
+  return Object.create({
+    resolve(filename) {
+      const partitions = this // eslint-disable-line no-shadow
+      const resolved = drive.resolve(filename)
+
+      debug('partitions: resolve: %s -> %s', filename, resolved)
+
+      if ('/' === resolved) { return root }
+      return parse(resolved) || root
+
+      // eslint-disable-next-line no-shadow
+      function parse(filename) { // eslint-disable-line consistent-return
+        // Strip Win32 drives from a filename
+        function stripWinDrives(winFilename) {
+          const regex = /^.:/
+          return winFilename.replace(regex, '')
+        }
+
+        // Determine if the filename is a top level directory
+        function isTopDir(topFilename) {
+          return ('/' === topFilename[0] || '\\' === topFilename[0])
+        }
+
+        if ('win32' === process.platform) {
+          filename = stripWinDrives(filename)
+        }
+
+        if (filename in partitions) {
+          debug('partitions: resolve: parse:', filename)
+          return partitions[filename]
+        } else if (isTopDir(filename)) {
+          for (let i = 1; i < filename.length; ++i) {
+            const slice = filename.slice(1, i + 1)
+            if (slice in partitions) {
+              debug('partitions: resolve: parse:', slice)
+              return partitions[slice]
+            }
+          }
+
+          return null
+        }
+      }
+    },
+
+    async create(name, opts) {
+      name = name.replace(/^\//, '')
+
+      if (false === name in this) {
+        Object.assign(opts, { path: resolve(path, name) })
+        const partition = await createCFSDrive(opts)
+        this[name] = partition
+        this[name][$PARTITION_NAME] = name
+
+        // wait for partition to be ready
+        await new Promise((cb) => {
+          partition.ready(cb)
+        })
+
+        // ensure partition has root access
+        try {
+          await pify(partition.access)('/')
+
+          const { mtime, ctime } = await pify(partition.stat)('/')
+
+          if (0 === Number(mtime) || 0 === Number(ctime)) {
+            // just throw something to switch to `catch' context
+            throw new Error()
+          }
+        } catch (err) {
+          if (partition.writable) {
+            try {
+              await pify(partition.mkdir)('/')
+            } catch (error) {
+              debug(error)
+            }
+          }
+        }
+
+        // ensure partition exists as child directory in root (root)
+        try { await pify(root.access)(resolve('/', name)) } catch (err) {
+          if (drive.writable) {
+            await pify(root.mkdirp)(resolve('/', name))
+          }
+        }
+
+        Object.assign(partition, {
+          resolve(filename) {
+            const regex = RegExp(`^/${name}`)
+            const resolved = unixify(filename).replace(regex, '')
+            debug('partition %s: resolve: %s -> %s', filename, resolved)
+            return resolved
+          }
+        })
+
+        drive.emit('partition', this[name], name)
+      }
+
+      return this[name]
+    }
+  })
+}
+
+async function ensureDriveRoot(drive) {
+  // this ensures 'root' directory actually has a 'Stat' in
+  // its metatdata
+  if (drive.writable) {
+    try {
+      await pify(drive.access)('/')
+      const { mtime, ctime } = await pify(drive.stat)('/')
+      if (0 === Number(mtime) || 0 === Number(ctime)) {
+        // just throw something to switch to `catch' context
+        throw new Error()
+      }
+    } catch (err) {
+      void err
+      try {
+        await pify(drive.mkdir)('/')
+      } catch (error) {
+        debug(error)
+      }
+    }
+  }
+}
+
 /**
- * This function creates the root CFS directories. The directory structure is
- * very similar to a Linux filesystem, or FHS (Filesystem Hierarchy Standard).
- *
- * The following directories are supported:
- *
- *  * / - The root of the CFS
- *  * /home - Contains directories of groups containing directories of users
- *    * /home/<group> - Group level hierarchy
- *    * /home/<group>/<user> - User level hierarchy with personal settings and configuration
- *  * /lib - Libraries essential to the user
- *  * /tmp - Temporary files
- *  * /var - Contains file that change often
- *  * /var/log - Contains log files for events that occur on the CFS
- *  * /var/cache - Contains cached files
- *
+ * Politely ensure the root CFS directory has access, otherwise
+ * create it.
+ */
+async function ensureCFSRootDirectoryAccess(opts) {
+  const { fs = require('fs') } = opts
+  debug('Ensuring root CFS directory "%s" has access', env.CFS_ROOT_DIR)
+  try {
+    await pify(fs.access)(env.CFS_ROOT_DIR)
+  } catch (err) {
+    // eslint-disable-next-line no-void
+    void (err, await pify(mkdirp)(env.CFS_ROOT_DIR, { fs }))
+  }
+}
+
+/**
+ * This function creates the root CFS directories.
+ * The directory structure is very similar to a
+ * Linux filesystem, or FHS (Filesystem Hierarchy Standard).
+ * @private
  */
 async function createCFSDirectories({
   id, path, drive, key, sparse
 }) {
   path = path || createCFSKeyPath({ id, key })
   drive = drive || drives[path] || await createCFSDrive({ path, key, sparse })
+
   debug(
-    "Ensuring CFS directories for '%s' with key '%s'",
+    'Ensuring CFS directories for "%s" with key "%s"',
     path, drive.key.toString('hex')
   )
+
   for (const dir of tree.directories) {
-    debug("Ensuring directory '%s'", dir)
+    debug('Ensuring directory "%s" exists', dir)
     try {
-      await pify(drive.stat)(dir) // eslint-disable-line no-await-in-loop
+      await pify(drive.stat)(dir)
     } catch (err) {
-      await pify(drive.mkdirp)(dir) // eslint-disable-line no-await-in-loop
+      await pify(drive.mkdirp)(dir)
     }
   }
 }
@@ -804,47 +821,59 @@ async function createCFSFiles({
   path = path || createCFSKeyPath({ id })
   drive = drive || drives[path] || await createCFSDrive({ path, key, sparse })
   debug(
-    "Ensuring CFS files for '%s' with key '%s'",
+    'Ensuring CFS files for "%s" with key "%s"',
     path, drive.key.toString('hex')
   )
 
   try {
     const signatureFile = drive.CFSSIGNATURE
-    try { await pify(drive.access)(signatureFile) } catch (err) {
+    try {
+      await pify(drive.access)(signatureFile)
+    } catch (err) {
       const signature = crypto.sha256(Buffer.concat([
         drive.identifier, drive.key, drive.metadata.secretKey
       ]))
-      debug("Writing CFS signature '%s' to %s", signature.toString('hex'), signatureFile)
+
+      debug(
+        'Writing CFS signature "%s" to %s',
+        signature.toString('hex'),
+        signatureFile
+      )
+
       await pify(drive.writeFile)(signatureFile, signature)
     }
   } catch (err) {
-    debug("Failed to create `/etc/cfs-signature' file", err)
+    debug('Failed to create "/etc/cfs-signature" file:', err)
   }
 
   try {
     const epochFile = drive.CFSEPOCH
-    try { await pify(drive.access)(epochFile) } catch (err) {
-      // in seconds
-      const timestamp = String((Date.now() / 1000) | 0) // eslint-disable-line no-bitwise
-      debug("Writing CFS epoch '%s' to %s", timestamp, epochFile)
+    try {
+      await pify(drive.access)(epochFile)
+    } catch (err) {
+      // eslint-disable-next-line no-bitwise
+      const timestamp = String((Date.now() / 1000) | 0)
+      debug('Writing CFS epoch "%s" to %s', timestamp, epochFile)
       await pify(drive.writeFile)(epochFile, Buffer.from(timestamp))
     }
   } catch (err) {
-    debug("Failed to create `/etc/cfs-epoch' file", err)
+    debug('Failed to create "/etc/cfs-epoch" file:', err)
   }
 
   try {
     const keyFile = drive.CFSKEY
-    try { await pify(drive.access)(keyFile) } catch (err) {
-      debug("Writing CFS key '%s' to %s", drive.key, keyFile)
+    try {
+      await pify(drive.access)(keyFile)
+    } catch (err) {
+      debug('Writing CFS key "%s" to %s', drive.key, keyFile)
       await pify(drive.writeFile)(keyFile, drive.key)
     }
   } catch (err) {
-    debug("Failed to create `/etc/cfs-key' file", err)
+    debug('Failed to create "/etc/cfs-key" file:', err)
   }
 
   for (const file of tree.files) {
-    debug("Ensuring file '%s'", file)
+    debug('Ensuring file "%s"', file)
     try {
       await pify(drive.stat)(file) // eslint-disable-line no-await-in-loop
     } catch (err) {
@@ -854,7 +883,5 @@ async function createCFSFiles({
 }
 
 module.exports = {
-  createCFSDirectories,
-  createCFSFiles,
   createCFS,
 }

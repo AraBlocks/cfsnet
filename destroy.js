@@ -1,5 +1,6 @@
-const { normalizeCFSKey } = require('./key')
+/* eslint-disable global-require */
 const { createCFSKeyPath } = require('./key-path')
+const { normalizeCFSKey } = require('./key')
 const drives = require('./drives')
 const rimraf = require('rimraf')
 const debug = require('debug')('cfsnet:destroy')
@@ -11,25 +12,27 @@ const pify = require('pify')
  * input identifier. The entire drive is removed, closed, purged
  * from disk, and removed from the shared CFS drive map.
  */
+async function destroyCFS(opts) {
+  const {
+    fs = require('fs'),
+    cfs = null,
+    autoClose = true,
+    destroyPath = false,
+  } = opts
 
-async function destroyCFS({
-  id = null,
-  fs = require('fs'),
-  cfs = null,
-  key = null,
-  path = null,
-  autoClose = true,
-  destroyPath = false,
-} = {}) {
-  id = id || (cfs && cfs.identifier) || null
-  key = (key && normalizeCFSKey(key)) || (cfs && cfs.key.toString('hex')) || null
-  path = path || createCFSKeyPath({ id, key })
+  const id = opts.id || (cfs && cfs.identifier) || null
+  const key = (
+    (opts.key && normalizeCFSKey(opts.key)) ||
+    (cfs && cfs.key.toString('hex')) ||
+    null
+  )
 
+  const path = opts.path || createCFSKeyPath({ id, key })
   const drive = cfs || drives[path]
 
   if (drive) {
     debug(
-      "Destroying CFS at path '%s' with key",
+      'Destroying CFS at path "%s" with key',
       path, drive.key ? drive.key.toString('hex') : null
     )
 
@@ -42,9 +45,11 @@ async function destroyCFS({
       if (autoClose) {
         await pify(drive.close)()
       }
-    } catch (err) { debug('Failed to remove files in drive') }
+    } catch (err) {
+      debug('Failed to remove files in drive', err)
+    }
 
-    if (destroyPath && '/' != path.trim()) {
+    if (destroyPath && '/' !== path.trim()) {
       await pify(rimraf)(path.trim(), fs)
     }
 
@@ -52,6 +57,7 @@ async function destroyCFS({
     delete drives[path]
     return true
   }
+
   return false
 }
 
