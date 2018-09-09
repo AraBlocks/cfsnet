@@ -12,8 +12,10 @@ async function MakeDirectoryPath({
 }) {
   const op = messages.MakeDirectoryPath.decode(message)
   debug('op:', op)
-  if (!op.path || 'string' !== typeof op.path || 0 == op.path.length) {
+
+  if (!op.path || 'string' !== typeof op.path || 0 === op.path.length) {
     throw new BadRequestError('Bad file path.')
   }
-  return await cfs.mkdirp(op.path)
+
+  return cfs.mkdirp(op.path)
 }

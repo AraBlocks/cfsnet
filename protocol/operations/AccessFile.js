@@ -18,7 +18,8 @@ async function AccessFile({
 }) {
   const op = messages.AccessFile.decode(message)
   debug('op:', op)
-  if (null == op.path || 0 == op.path.length) {
+
+  if (null == op.path || 0 === op.path.length) {
     throw new BadRequestError('Missing path.')
   }
 

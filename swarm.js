@@ -80,7 +80,7 @@ async function createCFSDiscoverySwarm({
 
   swarm.setMaxListeners(Infinity)
 
-  if (false == isBrowser && (tcp || utp)) {
+  if (!isBrowser && (tcp || utp)) {
     await new Promise((resolve) => {
       swarm.once('error', onlisten)
       try { swarm.listen(port || 0, onlisten) } catch (err) { onlisten(err) }
@@ -97,16 +97,20 @@ async function createCFSDiscoverySwarm({
       void await (async function init(port) {
         debug('ws: init: port=%s', port)
         const server = turbo.createServer()
-        server.listen(port, (err) => {
+        server.listen(port, () => {
           server.on('error', (err) => { swarm.emit('error', err) })
         })
         wss = await createCFSWebSocketServer({ server })
         wss.connections = Connections(wss)
         wss.on('error', (err) => {
-          if (err && 'EADDRINUSE' == err.code) { init(0) }
+          if (err && 'EADDRINUSE' === err.code) {
+            init(0)
+          }
         })
       }((ws || {}).port || 0))
-    } catch (err) { }
+    } catch (err) {
+      void err
+    }
 
     wss.setMaxListeners(Infinity)
     swarm.on('close', () => wss.close())
@@ -165,13 +169,13 @@ async function createCFSDiscoverySwarm({
       name = toBuffer(name)
     }
 
-    if (false == isBrowser && (tcp || utp) && (dht || dns)) {
+    if (!isBrowser && (tcp || utp) && (dht || dns)) {
       batch.push((done) => {
         _join(name, opts, done)
       })
     }
 
-    if (false == name in hubs) {
+    if (false === name in hubs) {
       hubs[toHex(name)] = createCFSSignalHub({ discoveryKey: name })
     }
 
@@ -192,7 +196,7 @@ async function createCFSDiscoverySwarm({
 
     hubs[toHex(name)].subscribe('join').on('data', async (info) => {
       if (!info) { return }
-      if (toHex(id) == toHex(info.id)) { return }
+      if (toHex(id) === toHex(info.id)) { return }
       if (info.id in signals || info.id in banned) { return }
 
       // store easy signal references
@@ -214,8 +218,12 @@ async function createCFSDiscoverySwarm({
 
       async function kick() {
         let socket = null
-        try { socket = await pify(connect)(signal.localAddress, signal.port) } catch (err) {
-          try { socket = await pify(connect)(signal.remoteAddress, signal.port) } catch (err) {
+        try {
+          socket = await pify(connect)(signal.localAddress, signal.port)
+        } catch (err) {
+          try {
+            socket = await pify(connect)(signal.remoteAddress, signal.port)
+          } catch (err) {
             const retry = kLucasRetries[signal.retries++]
             if ('number' === typeof retry) {
               return setTimeout(kick, retry)
@@ -275,7 +283,7 @@ async function createCFSDiscoverySwarm({
       address: address || localAddress || remoteAddress || null,
       port: port || remotePort || localPort || 0,
       retries: retries || 0,
-      id: Buffer.isBuffer(id) ? toHex(id) : 'string' === typeof id ? id : null,
+      id: Buffer.isBuffer(id) ? toHex(id) : id || null,
     }
   }
 

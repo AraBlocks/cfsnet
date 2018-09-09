@@ -20,15 +20,19 @@ async function ReadFile({
   const op = messages.ReadFile.decode(message)
   debug('op:', op)
 
-  if (!op.path || 'string' !== typeof op.path || 0 == op.path.length) {
+  if (!op.path || 'string' !== typeof op.path || 0 === op.path.length) {
     throw new BadRequestError('Bad file path.')
   }
 
-  if (0 == op.end) {
+  if (0 === op.end) {
     delete op.end
   }
 
-  try { await cfs.access(op.path) } catch (err) { throw new NotFoundError() }
+  try {
+    await cfs.access(op.path)
+  } catch (err) {
+    throw new NotFoundError()
+  }
 
-  return await cfs.readFile(op.path, op)
+  return cfs.readFile(op.path, op)
 }

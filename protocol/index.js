@@ -24,6 +24,7 @@ const kProtocolOperations = Object.seal(Object.freeze({
   [messages.Operation.ReadOperation]: operations.Read,
   [messages.Operation.ReadFileOperation]: operations.ReadFile,
   [messages.Operation.RemoveDirectoryOperation]: operations.RemoveDirectory,
+  // eslint-disable-next-line max-len
   [messages.Operation.RemoveDirectoryPathOperation]: operations.RemoveDirectoryPath,
   [messages.Operation.ResolveOperation]: operations.Resolve,
   [messages.Operation.StatFileOperation]: operations.StatFile,
@@ -34,9 +35,14 @@ const kProtocolOperations = Object.seal(Object.freeze({
 }))
 
 function opname(code) {
-  if (null == code) { return opname(messages.Operation.NoOperation) }
+  if (null === code || undefined === code) {
+    return opname(messages.Operation.NoOperation)
+  }
+
   for (const k in messages.Operation) {
-    if (code == messages.Operation[k]) { return k }
+    if (code === messages.Operation[k]) {
+      return k
+    }
   }
 }
 
@@ -347,7 +353,11 @@ class Protocol extends Duplex {
     if (operation in ops) {
       if ('function' === typeof ops[operation]) {
         debug('onoperation: %s', opname(operation))
-        try { buffer = await ops[operation](state) } catch (err) { onoperationerror(err) }
+        try {
+          buffer = await ops[operation](state)
+        } catch (err) {
+          onoperationerror(err)
+        }
       } else {
         errorCode = messages.ErrorCode.NotImplementedError
         buffer = `Not implemented: ${opname(operation)}`

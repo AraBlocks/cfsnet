@@ -13,17 +13,17 @@ async function WriteFile({
   const op = messages.WriteFile.decode(message)
   debug('op:', op)
 
-  if (!op.path || 'string' !== typeof op.path || 0 == op.path.length) {
+  if (!op.path || 'string' !== typeof op.path || 0 === op.path.length) {
     throw new BadRequestError('Bad file path.')
   }
 
-  if (null == op.buffer) {
+  if (!op.buffer) {
     throw new BadRequestError('Missing buffer.')
   }
 
-  if (false == cfs.writable) {
+  if (!cfs.writable) {
     throw new BadRequestError('Not writable.')
   }
 
-  return await cfs.writeFile(op.path, op.buffer, op)
+  return cfs.writeFile(op.path, op.buffer, op)
 }

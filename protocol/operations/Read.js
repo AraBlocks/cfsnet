@@ -17,13 +17,14 @@ async function Read({
 }) {
   const op = messages.Read.decode(message)
   debug('op:', op)
+
   if (op.fileDescriptor <= 0) {
     throw new BadRequestError('Bad file descriptor.')
   }
 
-  if (false == op.fileDescriptor in cfs.fileDescriptors) {
+  if (false === op.fileDescriptor in cfs.fileDescriptors) {
     throw new NotOpenedError('File descriptor not opened.')
   }
 
-  return await cfs.read(op.fileDescriptor, op)
+  return cfs.read(op.fileDescriptor, op)
 }

@@ -15,9 +15,11 @@ async function Resolve({
 }) {
   const op = messages.Resolve.decode(message)
   debug('op:', op)
-  if (!op.path || 'string' !== typeof op.path || 0 == op.path.length) {
+
+  if (!op.path || 'string' !== typeof op.path || 0 === op.path.length) {
     throw new BadRequestError('Bad file path.')
   }
+
   const path = await cfs.resolve(op.path)
   return messages.String.encode({ value: path })
 }

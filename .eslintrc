@@ -1,3 +1,9 @@
 {
-  "extends": "ara"
+  "extends": "ara",
+  "rules": {
+    "no-shadow": "off",
+    "consistent-return": "off",
+    "no-unused-vars": "off",
+    "no-param-reassign": "off"
+  }
 }

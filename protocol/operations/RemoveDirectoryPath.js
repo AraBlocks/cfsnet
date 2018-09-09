@@ -12,11 +12,16 @@ async function RemoveDirectoryPath({
 }) {
   const op = messages.RemoveDirectoryPath.decode(message)
   debug('op:', op)
-  if (!op.path || 'string' !== typeof op.path || 0 == op.path.length) {
+
+  if (!op.path || 'string' !== typeof op.path || 0 === op.path.length) {
     throw new BadRequestError('Bad file path.')
   }
 
-  try { await cfs.access(op.path) } catch (err) { return }
+  try {
+    await cfs.access(op.path)
+  } catch (err) {
+    return
+  }
 
-  return await cfs.rimraf(op.path)
+  return cfs.rimraf(op.path)
 }

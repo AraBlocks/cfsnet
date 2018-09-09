@@ -12,8 +12,10 @@ async function StatFile({
 }) {
   const op = messages.StatFile.decode(message)
   debug('op:', op)
-  if (!op.path || 'string' !== typeof op.path || 0 == op.path.length) {
+
+  if (!op.path || 'string' !== typeof op.path || 0 === op.path.length) {
     throw new BadRequestError('Bad file path.')
   }
+
   return messages.Stat.encode(await cfs.stat(op.path))
 }

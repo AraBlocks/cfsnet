@@ -22,9 +22,9 @@ async function Close({
     throw new BadRequestError('Bad file descriptor.')
   }
 
-  if (false == op.fileDescriptor in cfs.fileDescriptors) {
+  if (false === op.fileDescriptor in cfs.fileDescriptors) {
     throw new NotOpenedError('File descriptor not opened.')
   }
 
-  return await cfs.close(op.fileDescriptor)
+  return cfs.close(op.fileDescriptor)
 }
