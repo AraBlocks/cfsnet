@@ -166,9 +166,11 @@ async function createCFS(opts) {
 
         // acquire file descriptor
         const fd = await pify(partition.open)(filename, flags, mode)
+
         if (!fd || fd <= 0) {
           return cb(new Error('AccessDenied'))
         }
+
         fileDescriptors[fd] = partition
         return cb(null, fd)
       }
@@ -181,12 +183,21 @@ async function createCFS(opts) {
         cb = opts
         opts = {}
       }
+
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
-      debug('partition: %s: stat: %s', partition[$PARTITION_NAME], filename)
+
+      debug(
+        'partition: %s: stat: %s',
+        partition[$PARTITION_NAME],
+        filename
+      )
+
+      // stat on partition path (ie /tmp or /home)
       if (filename.slice(1) in partitions) {
         return root.stat(filename, opts, cb)
       }
+
       filename = partition.resolve(filename)
       return partition.stat(filename, opts, cb)
     },
@@ -200,8 +211,13 @@ async function createCFS(opts) {
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
 
-      debug('partition: %s: lstat: %s', partition[$PARTITION_NAME], filename)
+      debug(
+        'partition: %s: lstat: %s',
+        partition[$PARTITION_NAME],
+        filename
+      )
 
+      // stat on partition path (ie /tmp or /home)
       if (filename.slice(1) in partitions) {
         return root.lstat(filename, opts, cb)
       }
@@ -246,20 +262,25 @@ async function createCFS(opts) {
 
     async read(fd, ...args) {
       let cb
+
       if ('function' === typeof fd) {
         cb = fd
         fd = -1
       } else {
-        cb = args.slice(-1)[0] // eslint-disable-line prefer-destructuring
+        // eslint-disable-next-line prefer-destructuring
+        cb = args.slice(-1)[0]
       }
 
       if (!fd || fd <= 0 || 'function' === typeof fd) {
         return cb(new Error('NotOpened'))
       }
+
       const partition = fileDescriptors[fd]
+
       if (!partition) {
         return cb(new Error('NotOpened'))
       }
+
       return partition.read(fd, ...args)
     },
 
