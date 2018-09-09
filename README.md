@@ -73,6 +73,98 @@ console.log(await cfs.readdir('~'))
 
 TODO
 
+#### `fd = await cfs.open(filename, [flags], [mode])`
+
+TODO
+
+#### `stats = await cfs.stat(filename, [opts])`
+
+TODO
+
+#### `stats = await cfs.lstat(filename, [opts])`
+
+TODO
+
+#### `await cfs.close(fd)`
+
+TODO
+
+#### `await cfs.read(fd, buffer, offset, length, position)`
+
+TODO
+
+#### `await cfs.rmdir(dirname)`
+
+TODO
+
+#### `await cfs.touch(filename)`
+
+TODO
+
+#### `await cfs.rimraf(filename)`
+
+TODO
+
+#### `await cfs.unlink(filename)`
+
+TODO
+
+#### `await cfs.mkdir(filename, [opts])`
+
+TODO
+
+#### `await cfs.mkdirp(filename, [opts])`
+
+TODO
+
+#### `files = await cfs.readdir(dirname, [opts])`
+
+TODO
+
+#### `await cfs.access(filename, [mode])`
+
+TODO
+
+#### `await cfs.download([filename])`
+
+TODO
+
+#### `buffer = await cfs.readFile(filename, [opts])`
+
+TODO
+
+#### `await cfs.writeFile(filename, buffer, [opts])`
+
+TODO
+
+#### `stream = cfs.createReadStream(filename, [opts])`
+
+TODO
+
+#### `stream = cfs.createWriteStream(filename, [opts])`
+
+TODO
+
+#### `stream = cfs.history(partition, [opts])`
+
+TODO
+
+#### `stream = cfs.replicate(partition, [opts])`
+
+TODO
+
+#### `cfs.update(callback)`
+
+TODO
+
+#### `cfs.ready(callback)`
+
+TODO
+
+#### `path = cfs.resolve(filename)`
+
+TODO
+
 ### `destroyed = await destroyCFS(opts)`
 
 TODO
@@ -82,18 +174,6 @@ TODO
 TODO
 
 ### `path = await createCFSKeyPath(opts)`
-
-TODO
-
-### `server = await createCFSWebSocketServer(opts)`
-
-TODO
-
-### `stream = await createCFSWebSocketStream(opts)`
-
-TODO
-
-### `socket = await createCFSWebSocket(opts)`
 
 TODO
 
