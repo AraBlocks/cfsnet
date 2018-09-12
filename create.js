@@ -376,7 +376,9 @@ async function createCFS(opts) {
         }
 
       case constants.F_OK:
-        try { await pify(partition.access)(filename) } catch (err) {
+        try {
+          await pify(partition.access)(filename)
+        } catch (err) {
           debug('F_OK != true')
           debug(err)
           return cb(new Error('AccessDenied'))
