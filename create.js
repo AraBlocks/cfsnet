@@ -56,9 +56,13 @@ async function createCFS(opts) {
   const key = normalizeCFSKey(opts.key)
   const path = opts.path || createCFSKeyPath({ id, key })
 
+  let cache = null
+
   if (path in drives) {
     return drives[path]
   }
+
+  drives[path] = new Promise((_) => { cache = _ })
 
   if ('string' === typeof storage && false === isBrowser) {
     await ensureCFSRootDirectoryAccess({ fs })
@@ -92,8 +96,6 @@ async function createCFS(opts) {
   debug('drive ready:', id, key)
   await pify(drive.ready)()
   await ensureDriveRoot(drive)
-
-  drives[path] = drive
 
   const root = createRoot(drive)
   const partitions = createPartitionManager(path, root, drive)
@@ -545,6 +547,8 @@ async function createCFS(opts) {
   } else {
     await onupdate()
   }
+
+  cache(drive)
 
   return drive
 
