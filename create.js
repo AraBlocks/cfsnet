@@ -642,6 +642,8 @@ async function createCFS(opts) {
           done(err)
         }
       })
+    } else {
+      done(null)
     }
   }
 }
