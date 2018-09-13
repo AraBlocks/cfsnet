@@ -406,8 +406,10 @@ async function createCFS(opts) {
       if (null == filename) {
         for (const k in partitions) {
           const partition = partitions[k]
-          debug('partition: %s: download', partition[$PARTITION_NAME])
-          await pify(partition.download)()
+          if (partition && 'function' === typeof partition.download) {
+            debug('partition: %s: download', partition[$PARTITION_NAME])
+            await pify(partition.download)()
+          }
         }
       } else {
         filename = drive.resolve(filename)
