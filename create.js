@@ -244,7 +244,6 @@ async function createCFS(opts) {
           }
         }
 
-        batch.push(done => root.close(done))
         return batch.end(cb)
       }
 
