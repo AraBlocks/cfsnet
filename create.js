@@ -828,7 +828,7 @@ async function createCFSDirectories({
   id, path, drive, key, sparse
 }) {
   path = path || createCFSKeyPath({ id, key })
-  drive = drive || drives[path] || await createCFSDrive({ path, key, sparse })
+  drive = await (drive || drives[path] || createCFSDrive({ path, key, sparse }))
 
   debug(
     'Ensuring CFS directories for "%s" with key "%s"',
@@ -849,7 +849,7 @@ async function createCFSFiles({
   id, path, drive, key, sparse
 }) {
   path = path || createCFSKeyPath({ id })
-  drive = drive || drives[path] || await createCFSDrive({ path, key, sparse })
+  drive = await (drive || drives[path] || createCFSDrive({ path, key, sparse }))
   debug(
     'Ensuring CFS files for "%s" with key "%s"',
     path, drive.key.toString('hex')
