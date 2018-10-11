@@ -22,7 +22,7 @@ async function destroyCFS(opts) {
   )
 
   const path = opts.path || createCFSKeyPath({ id })
-  const drive = cfs || drives[path]
+  const drive = await (cfs || drives[path])
 
   if (drive) {
     debug(
