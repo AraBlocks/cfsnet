@@ -37,6 +37,14 @@ const identity = i => i
  * `.key`. An optional 'discovery public key' can be given for replication
  */
 async function createCFS(opts) {
+  if (!opts) {
+    opts = {}
+  }
+
+  if (!opts.id && opts.identifier) {
+    opts.id = opts.identifier
+  }
+
   const {
     sparseMetadata = false,
     eventStream = true,
@@ -47,6 +55,10 @@ async function createCFS(opts) {
     fs = require('fs'),
     id = null,
   } = opts
+
+  if (!opts.partitions) {
+    opts.partitions = {}
+  }
 
   let {
     latest = false,
@@ -128,10 +140,10 @@ async function createCFS(opts) {
     get TMP() { return '/tmp' }
   }))
 
-  await createPartition(drive.ETC, shallow ? ram : null)
-  await createPartition(drive.LIB, shallow ? ram : null)
+  await createPartition(drive.ETC, shallow ? ram : opts.partitions.etc)
+  await createPartition(drive.LIB, shallow ? ram : opts.partitions.lib)
   await createPartition(drive.TMP, ram)
-  await createPartition(drive.VAR, shallow ? ram : null)
+  await createPartition(drive.VAR, shallow ? ram : opts.partitions.var)
 
   const home = await partitions.create(drive.HOME, {
     sparseMetadata,
@@ -608,25 +620,30 @@ async function createCFS(opts) {
     }
   }
 
-  async function createPartition(name, storageOverride) {
+  async function createPartition(name, storageOverride, opts) {
     if (false === tree.partitions.includes(name)) {
       throw new TypeError(`Invalid partition: ${name}`)
     }
 
+    // just use opts as key pair
+    const kp = opts ? kp : {}
+
     name = name.replace(/^\//, '')
     secretKey = drive.metadata.secretKey || drive.key
 
-    const prefix = Buffer.from(name)
-    const seed = Buffer.concat([ prefix, secretKey ])
-    const keyPair = crypto.generateKeyPair(seed)
+    if (!kp.key) {
+      const prefix = Buffer.from(name)
+      const seed = Buffer.concat([ prefix, secretKey ])
+      Object.assign(kp, crypto.generateKeyPair(seed))
+    }
 
     await partitions.create(name, {
-      sparseMetadata,
-      sparse,
+      sparseMetadata: opts && opts.sparseMetadata ? true : sparseMetadata,
+      sparse: opts && opts.sparse ? true : sparse,
 
-      secretKey: keyPair.secretKey,
+      secretKey: kp.secretKey,
       storage: storageOverride || storage,
-      key: keyPair.publicKey,
+      key: kp.key || kp.publicKey,
     })
   }
 
