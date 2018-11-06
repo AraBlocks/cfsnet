@@ -140,10 +140,10 @@ async function createCFS(opts) {
     get TMP() { return '/tmp' }
   }))
 
-  await createPartition(drive.ETC, shallow ? ram : opts.partitions.etc)
-  await createPartition(drive.LIB, shallow ? ram : opts.partitions.lib)
+  await createPartition(drive.ETC, shallow ? ram : null,  opts.partitions.etc)
+  await createPartition(drive.LIB, shallow ? ram : null,  opts.partitions.lib)
   await createPartition(drive.TMP, ram)
-  await createPartition(drive.VAR, shallow ? ram : opts.partitions.var)
+  await createPartition(drive.VAR, shallow ? ram : null,  opts.partitions.var)
 
   const home = await partitions.create(drive.HOME, {
     sparseMetadata,
@@ -626,7 +626,7 @@ async function createCFS(opts) {
     }
 
     // just use opts as key pair
-    const kp = opts ? kp : {}
+    const kp = opts || {}
 
     name = name.replace(/^\//, '')
     secretKey = drive.metadata.secretKey || drive.key
