@@ -50,7 +50,7 @@ const { createCFSDiscoverySwarm } = require('cfsnet/swarm')
 
 ## Example
 
-```js`
+```js
 const id = 'my-file-system'
 const cfs = await createCFS({ id })
 
