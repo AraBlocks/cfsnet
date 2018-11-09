@@ -208,7 +208,7 @@ async function createCFS(opts) {
       )
 
       // stat on partition path (ie /tmp or /home)
-      if (filename.slice(1) in partitions) {
+      if (drive.writable && filename.slice(1) in partitions) {
         return root.stat(filename, opts, cb)
       }
 
@@ -232,7 +232,7 @@ async function createCFS(opts) {
       )
 
       // stat on partition path (ie /tmp or /home)
-      if (filename.slice(1) in partitions) {
+      if (drive.writable && filename.slice(1) in partitions) {
         return root.lstat(filename, opts, cb)
       }
 
