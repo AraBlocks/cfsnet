@@ -1,7 +1,12 @@
-const { keyPair, discoveryKey } = require('hypercore/lib/crypto')
 const randombytes = require('randombytes')
 const sodium = require('sodium-universal')
 const Hash = require('hash.js')
+const {
+  discoveryKey,
+  keyPair,
+  verify,
+  sign,
+} = require('hypercore-crypto')
 
 function generateRandomKeyPair() {
   return generateKeyPair(randombytes(32))
@@ -15,15 +20,15 @@ function generateKeyPair(x) {
   return keyPair(x)
 }
 
+function sha256(x) {
+  const digest = Hash.sha256().update(x).digest('hex')
+  return Buffer.from(digest, 'hex')
+}
+
 function blake2b(buffer) {
   const digest = Buffer.allocUnsafe(32)
   sodium.crypto_generichash(digest, buffer)
   return digest
-}
-
-function sha256(x) {
-  const digest = Hash.sha256().update(x).digest('hex')
-  return Buffer.from(digest, 'hex')
 }
 
 function nonce() {
@@ -36,5 +41,7 @@ module.exports = {
   generateKeyPair,
   blake2b,
   sha256,
+  verify,
   nonce,
+  sign,
 }
