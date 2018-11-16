@@ -140,10 +140,10 @@ async function createCFS(opts) {
     get TMP() { return '/tmp' }
   }))
 
-  await createPartition(drive.ETC, shallow ? ram : null,  opts.partitions.etc)
-  await createPartition(drive.LIB, shallow ? ram : null,  opts.partitions.lib)
+  await createPartition(drive.ETC, shallow ? ram : null, opts.partitions.etc)
+  await createPartition(drive.LIB, shallow ? ram : null, opts.partitions.lib)
   await createPartition(drive.TMP, ram)
-  await createPartition(drive.VAR, shallow ? ram : null,  opts.partitions.var)
+  await createPartition(drive.VAR, shallow ? ram : null, opts.partitions.var)
 
   const home = await partitions.create(drive.HOME, {
     sparseMetadata,
@@ -596,11 +596,11 @@ async function createCFS(opts) {
   async function createFileSystem() {
     if (id && drive.writable) {
       await createCFSDirectories({
-        id, path, drive, key, sparse
+        id, path, drive, key, sparse, secretKey,
       })
 
       await createCFSFiles({
-        id, path, drive, key, sparse
+        id, path, drive, key, sparse, secretKey,
       })
 
       debug('drive init: fs')
@@ -863,7 +863,7 @@ async function createCFSDirectories({
 }
 
 async function createCFSFiles({
-  id, path, drive, key, sparse
+  id, path, drive, key, sparse, secretKey
 }) {
   path = path || createCFSKeyPath({ id })
   drive = await (drive || drives[path] || createCFSDrive({ path, key, sparse }))
@@ -875,11 +875,14 @@ async function createCFSFiles({
   try {
     const signatureFile = drive.CFSSIGNATURE
     try {
-      await pify(drive.access)(signatureFile)
+      const signature = await pify(drive.readFile)(signatureFile)
+      if (!signature || 0 === signature.length) {
+        throw Error()
+      }
     } catch (err) {
-      const signature = crypto.sha256(Buffer.concat([
-        drive.identifier, drive.key, drive.metadata.secretKey
-      ]))
+      const signature = crypto.sign(crypto.blake2b(Buffer.concat([
+        drive.identifier, drive.key
+      ])), secretKey)
 
       debug(
         'Writing CFS signature "%s" to %s',
