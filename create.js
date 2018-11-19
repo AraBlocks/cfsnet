@@ -125,6 +125,7 @@ async function createCFS(opts) {
     get fileDescriptors() { return fileDescriptors },
     get identifier() { return identifier },
     get partitions() { return partitions },
+    get version() { return partitions.home.version },
     get root() { return root },
 
     get CFSSIGNATURE() { return '/etc/cfs-signature' },
