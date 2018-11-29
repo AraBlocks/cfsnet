@@ -25,7 +25,6 @@
     "crypto.js",
     "destroy.js",
     "drive.js",
-    "drives.js",
     "env.js",
     "key.js",
     "key-path.js",

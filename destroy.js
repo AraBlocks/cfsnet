@@ -1,7 +1,6 @@
 /* eslint-disable global-require */
 const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
-const drives = require('./drives')
 const rimraf = require('rimraf')
 const debug = require('debug')('cfsnet:destroy')
 const pify = require('pify')
@@ -22,7 +21,7 @@ async function destroyCFS(opts) {
   )
 
   const path = opts.path || createCFSKeyPath({ id })
-  const drive = await (cfs || drives[path])
+  const drive = cfs
 
   if (drive) {
     debug(
@@ -34,7 +33,6 @@ async function destroyCFS(opts) {
       await pify(drive.close)()
     }
 
-    delete drives[path]
     return true
   }
 

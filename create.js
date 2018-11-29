@@ -10,7 +10,6 @@ const isBrowser = require('is-browser')
 const isBuffer = require('is-buffer')
 const unixify = require('unixify')
 const pumpcat = require('pumpcat')
-const drives = require('./drives')
 const crypto = require('./crypto')
 const mkdirp = require('mkdirp')
 const Batch = require('batch')
@@ -67,14 +66,6 @@ async function createCFS(opts) {
 
   const key = normalizeCFSKey(opts.key)
   const path = opts.path || createCFSKeyPath({ id, key })
-
-  let cache = null
-
-  if (path in drives) {
-    return drives[path]
-  }
-
-  drives[path] = new Promise((_) => { cache = _ })
 
   if ('string' === typeof storage && false === isBrowser) {
     await ensureCFSRootDirectoryAccess({ fs })
@@ -246,7 +237,6 @@ async function createCFS(opts) {
       if (!fd || 'function' === typeof fd) {
         cb = fd
         fd = null
-        delete drives[path]
         const batch = new Batch().concurrency(1)
 
         batch.push((done) => { flushHistoryEvents(done) })
@@ -562,8 +552,6 @@ async function createCFS(opts) {
     await onupdate()
   }
 
-  cache(drive)
-
   return drive
 
   function proxyEvent(event) {
@@ -846,7 +834,7 @@ async function createCFSDirectories({
   id, path, drive, key, sparse
 }) {
   path = path || createCFSKeyPath({ id, key })
-  drive = await (drive || drives[path] || createCFSDrive({ path, key, sparse }))
+  drive = await (drive || createCFSDrive({ path, key, sparse }))
 
   debug(
     'Ensuring CFS directories for "%s" with key "%s"',
@@ -867,7 +855,7 @@ async function createCFSFiles({
   id, path, drive, key, sparse, secretKey
 }) {
   path = path || createCFSKeyPath({ id })
-  drive = await (drive || drives[path] || createCFSDrive({ path, key, sparse }))
+  drive = await (drive || createCFSDrive({ path, key, sparse }))
   debug(
     'Ensuring CFS files for "%s" with key "%s"',
     path, drive.key.toString('hex')
