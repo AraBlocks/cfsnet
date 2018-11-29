@@ -61,7 +61,6 @@
     "randombytes": "^2.0.6",
     "readable-stream": "^2.3.6",
     "rimraf": "^2.6.2",
-    "rmdir": "^1.2.0",
     "signalhub": "^4.9.0",
     "simple-websocket": "^7.0.2",
     "sodium-universal": "^2.0.0",
