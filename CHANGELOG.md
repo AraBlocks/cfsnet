@@ -1,11 +1,24 @@
+<a name="0.15.2"></a>
+## [0.15.2](https://github.com/arablocks/cfsnet/compare/0.15.1...0.15.2) (2018-12-13)
+
+
+### Bug Fixes
+
+* **create:** pass latest option to hyperdrive ([9142814](https://github.com/arablocks/cfsnet/commit/9142814))
+
+
+
+<a name="0.15.1"></a>
 ## [0.15.1](https://github.com/arablocks/cfsnet/compare/0.15.0...0.15.1) (2018-12-05)
 
 
 
+<a name="0.15.0"></a>
 # [0.15.0](https://github.com/arablocks/cfsnet/compare/0.14.2...0.15.0) (2018-11-29)
 
 
 
+<a name="0.14.2"></a>
 ## [0.14.2](https://github.com/arablocks/cfsnet/compare/0.14.0...0.14.2) (2018-11-29)
 
 
@@ -15,6 +28,7 @@
 
 
 
+<a name="0.14.0"></a>
 # [0.14.0](https://github.com/arablocks/cfsnet/compare/0.13.0...0.14.0) (2018-11-19)
 
 
@@ -24,6 +38,7 @@
 
 
 
+<a name="0.13.0"></a>
 # [0.13.0](https://github.com/arablocks/cfsnet/compare/0.12.1...0.13.0) (2018-11-16)
 
 
@@ -39,6 +54,7 @@
 
 
 
+<a name="0.12.1"></a>
 ## [0.12.1](https://github.com/arablocks/cfsnet/compare/0.12.0...0.12.1) (2018-11-06)
 
 
@@ -48,6 +64,7 @@
 
 
 
+<a name="0.12.0"></a>
 # [0.12.0](https://github.com/arablocks/cfsnet/compare/0.11.1...0.12.0) (2018-11-05)
 
 
@@ -57,18 +74,22 @@
 
 
 
+<a name="0.11.1"></a>
 ## [0.11.1](https://github.com/arablocks/cfsnet/compare/0.11.0...0.11.1) (2018-10-11)
 
 
 
+<a name="0.11.0"></a>
 # [0.11.0](https://github.com/arablocks/cfsnet/compare/0.10.3...0.11.0) (2018-09-18)
 
 
 
+<a name="0.10.3"></a>
 ## [0.10.3](https://github.com/arablocks/cfsnet/compare/0.10.2...0.10.3) (2018-09-13)
 
 
 
+<a name="0.10.2"></a>
 ## [0.10.2](https://github.com/arablocks/cfsnet/compare/0.10.1...0.10.2) (2018-09-13)
 
 
@@ -78,6 +99,7 @@
 
 
 
+<a name="0.10.1"></a>
 ## [0.10.1](https://github.com/arablocks/cfsnet/compare/0.10.0...0.10.1) (2018-09-13)
 
 
@@ -87,22 +109,27 @@
 
 
 
+<a name="0.10.0"></a>
 # [0.10.0](https://github.com/arablocks/cfsnet/compare/0.9.1...0.10.0) (2018-09-12)
 
 
 
+<a name="0.9.1"></a>
 ## [0.9.1](https://github.com/arablocks/cfsnet/compare/0.9.0...0.9.1) (2018-09-09)
 
 
 
+<a name="0.9.0"></a>
 # [0.9.0](https://github.com/arablocks/cfsnet/compare/0.8.0...0.9.0) (2018-09-09)
 
 
 
+<a name="0.8.0"></a>
 # [0.8.0](https://github.com/arablocks/cfsnet/compare/0.7.0...0.8.0) (2018-09-09)
 
 
 
+<a name="0.7.0"></a>
 # [0.7.0](https://github.com/arablocks/cfsnet/compare/0.6.0...0.7.0) (2018-08-29)
 
 
@@ -112,6 +139,7 @@
 
 
 
+<a name="0.6.0"></a>
 # [0.6.0](https://github.com/arablocks/cfsnet/compare/0.5.3...0.6.0) (2018-08-29)
 
 
@@ -121,6 +149,7 @@
 
 
 
+<a name="0.5.3"></a>
 ## [0.5.3](https://github.com/arablocks/cfsnet/compare/0.5.2...0.5.3) (2018-08-22)
 
 
@@ -132,6 +161,7 @@
 
 
 
+<a name="0.5.2"></a>
 ## [0.5.2](https://github.com/arablocks/cfsnet/compare/0.5.1...0.5.2) (2018-07-10)
 
 
@@ -146,22 +176,27 @@
 
 
 
+<a name="0.5.1"></a>
 ## [0.5.1](https://github.com/arablocks/cfsnet/compare/0.5.0...0.5.1) (2018-06-02)
 
 
 
+<a name="0.5.0"></a>
 # [0.5.0](https://github.com/arablocks/cfsnet/compare/0.4.15...0.5.0) (2018-06-01)
 
 
 
+<a name="0.4.15"></a>
 ## [0.4.15](https://github.com/arablocks/cfsnet/compare/0.4.14...0.4.15) (2018-06-01)
 
 
 
+<a name="0.4.14"></a>
 ## [0.4.14](https://github.com/arablocks/cfsnet/compare/0.4.13...0.4.14) (2018-05-31)
 
 
 
+<a name="0.4.13"></a>
 ## [0.4.13](https://github.com/arablocks/cfsnet/compare/0.4.12...0.4.13) (2018-05-29)
 
 
@@ -172,66 +207,82 @@
 
 
 
+<a name="0.4.12"></a>
 ## [0.4.12](https://github.com/arablocks/cfsnet/compare/0.4.11...0.4.12) (2018-05-14)
 
 
 
+<a name="0.4.11"></a>
 ## [0.4.11](https://github.com/arablocks/cfsnet/compare/0.4.10...0.4.11) (2018-05-14)
 
 
 
+<a name="0.4.10"></a>
 ## [0.4.10](https://github.com/arablocks/cfsnet/compare/0.4.9...0.4.10) (2018-05-14)
 
 
 
+<a name="0.4.9"></a>
 ## [0.4.9](https://github.com/arablocks/cfsnet/compare/0.4.8...0.4.9) (2018-05-14)
 
 
 
+<a name="0.4.8"></a>
 ## [0.4.8](https://github.com/arablocks/cfsnet/compare/0.4.7...0.4.8) (2018-05-13)
 
 
 
+<a name="0.4.7"></a>
 ## [0.4.7](https://github.com/arablocks/cfsnet/compare/0.4.6...0.4.7) (2018-05-13)
 
 
 
+<a name="0.4.6"></a>
 ## [0.4.6](https://github.com/arablocks/cfsnet/compare/0.4.5...0.4.6) (2018-05-11)
 
 
 
+<a name="0.4.5"></a>
 ## [0.4.5](https://github.com/arablocks/cfsnet/compare/0.4.4...0.4.5) (2018-05-11)
 
 
 
+<a name="0.4.4"></a>
 ## [0.4.4](https://github.com/arablocks/cfsnet/compare/0.4.3...0.4.4) (2018-05-11)
 
 
 
+<a name="0.4.3"></a>
 ## [0.4.3](https://github.com/arablocks/cfsnet/compare/0.4.2...0.4.3) (2018-05-11)
 
 
 
+<a name="0.4.2"></a>
 ## [0.4.2](https://github.com/arablocks/cfsnet/compare/0.4.1...0.4.2) (2018-05-09)
 
 
 
+<a name="0.4.1"></a>
 ## [0.4.1](https://github.com/arablocks/cfsnet/compare/0.4.0...0.4.1) (2018-05-08)
 
 
 
+<a name="0.4.0"></a>
 # [0.4.0](https://github.com/arablocks/cfsnet/compare/0.3.2...0.4.0) (2018-05-08)
 
 
 
+<a name="0.3.2"></a>
 ## [0.3.2](https://github.com/arablocks/cfsnet/compare/0.3.1...0.3.2) (2018-05-07)
 
 
 
+<a name="0.3.1"></a>
 ## [0.3.1](https://github.com/arablocks/cfsnet/compare/0.3.0...0.3.1) (2018-05-04)
 
 
 
+<a name="0.3.0"></a>
 # [0.3.0](https://github.com/arablocks/cfsnet/compare/0.2.6...0.3.0) (2018-05-04)
 
 
@@ -241,30 +292,37 @@
 
 
 
+<a name="0.2.6"></a>
 ## [0.2.6](https://github.com/arablocks/cfsnet/compare/0.2.5...0.2.6) (2018-04-24)
 
 
 
+<a name="0.2.5"></a>
 ## [0.2.5](https://github.com/arablocks/cfsnet/compare/0.2.4...0.2.5) (2018-04-24)
 
 
 
+<a name="0.2.4"></a>
 ## [0.2.4](https://github.com/arablocks/cfsnet/compare/0.2.3...0.2.4) (2018-04-24)
 
 
 
+<a name="0.2.3"></a>
 ## [0.2.3](https://github.com/arablocks/cfsnet/compare/0.2.2...0.2.3) (2018-04-24)
 
 
 
+<a name="0.2.2"></a>
 ## [0.2.2](https://github.com/arablocks/cfsnet/compare/0.2.1...0.2.2) (2018-04-23)
 
 
 
+<a name="0.2.1"></a>
 ## [0.2.1](https://github.com/arablocks/cfsnet/compare/0.2.0...0.2.1) (2018-04-23)
 
 
 
+<a name="0.2.0"></a>
 # [0.2.0](https://github.com/arablocks/cfsnet/compare/0.1.3...0.2.0) (2018-04-23)
 
 
@@ -274,10 +332,12 @@
 
 
 
+<a name="0.1.3"></a>
 ## [0.1.3](https://github.com/arablocks/cfsnet/compare/0.1.2...0.1.3) (2018-04-12)
 
 
 
+<a name="0.1.2"></a>
 ## [0.1.2](https://github.com/arablocks/cfsnet/compare/0.1.1...0.1.2) (2018-04-11)
 
 
@@ -288,6 +348,7 @@
 
 
 
+<a name="0.1.1"></a>
 ## [0.1.1](https://github.com/arablocks/cfsnet/compare/0.1.0...0.1.1) (2018-04-10)
 
 
@@ -297,6 +358,7 @@
 
 
 
+<a name="0.1.0"></a>
 # 0.1.0 (2018-04-10)
 
 
