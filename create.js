@@ -629,6 +629,7 @@ async function createCFS(opts) {
     await partitions.create(name, {
       sparseMetadata: opts && opts.sparseMetadata ? true : sparseMetadata,
       sparse: opts && opts.sparse ? true : sparse,
+      latest: opts && opts.latest ? true : latest,
 
       secretKey: kp.secretKey,
       storage: storageOverride || storage,
