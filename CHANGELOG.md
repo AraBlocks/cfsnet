@@ -1,4 +1,4 @@
-## [0.15.2](https://github.com/AraBlocks/cfsnet/compare/0.15.1...0.15.2) (2019-01-24)
+## [0.15.3](https://github.com/AraBlocks/cfsnet/compare/0.15.1...0.15.3) (2019-01-24)
 
 
 
