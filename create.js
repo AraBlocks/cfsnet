@@ -4,6 +4,7 @@ const { createCFSKeyPath } = require('./key-path')
 const { normalizeCFSKey } = require('./key')
 const { createCFSDrive } = require('./drive')
 const { resolve } = require('path')
+const randombytes = require('randombytes')
 const JSONStream = require('streaming-json-stringify')
 const constants = require('./constants')
 const isBrowser = require('is-browser')
@@ -53,7 +54,7 @@ async function createCFS(opts) {
     storage = null,
     sparse = false,
     fs = require('fs'),
-    id = null,
+    id = randombytes(32),
   } = opts
 
   if (!opts.partitions) {
@@ -588,11 +589,11 @@ async function createCFS(opts) {
   async function createFileSystem() {
     if (id && drive.writable) {
       await createCFSDirectories({
-        id, path, drive, key, sparse, secretKey,
+        id, path, drive, key, sparse, secretKey, storeSecretKey,
       })
 
       await createCFSFiles({
-        id, path, drive, key, sparse, secretKey,
+        id, path, drive, key, sparse, secretKey, storeSecretKey,
       })
 
       debug('drive init: fs')
@@ -836,10 +837,12 @@ async function ensureCFSRootDirectoryAccess(opts) {
  * @private
  */
 async function createCFSDirectories({
-  id, path, drive, key, sparse
+  id, path, drive, key, secretKey, sparse, storeSecretKey
 }) {
   path = path || createCFSKeyPath({ id, key })
-  drive = await drive
+  drive = await (drive || createCFSDrive({
+    path, key, sparse, secretKey, storeSecretKey
+  }))
 
   debug(
     'Ensuring CFS directories for "%s" with key "%s"',
@@ -857,10 +860,13 @@ async function createCFSDirectories({
 }
 
 async function createCFSFiles({
-  id, path, drive, key, sparse, secretKey
+  id, path, drive, key, sparse, secretKey, storeSecretKey
 }) {
   path = path || createCFSKeyPath({ id })
-  drive = await drive
+  drive = await (drive || createCFSDrive({
+    path, key, sparse, secretKey, storeSecretKey
+  }))
+
   debug(
     'Ensuring CFS files for "%s" with key "%s"',
     path, drive.key.toString('hex')
