@@ -91,7 +91,7 @@ async function createCFS(opts) {
       } else if ('function' === typeof storage) {
         return storage(file, drive, path)
       }
-      return raf(resolve(path, file))
+      return raf(resolve(storage || path, file))
     }
   })
 
