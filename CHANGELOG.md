@@ -1,3 +1,12 @@
+## [0.16.1](https://github.com/AraBlocks/cfsnet/compare/0.16.0...0.16.1) (2019-02-22)
+
+
+### Bug Fixes
+
+* **create.js:** FIx path resolution when storage is a string ([53693cc](https://github.com/AraBlocks/cfsnet/commit/53693cc))
+
+
+
 # [0.16.0](https://github.com/AraBlocks/cfsnet/compare/0.15.2...0.16.0) (2019-02-22)
 
 
