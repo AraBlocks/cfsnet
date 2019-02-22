@@ -1,4 +1,18 @@
-## [0.15.3](https://github.com/AraBlocks/cfsnet/compare/0.15.1...0.15.3) (2019-01-24)
+# [0.16.0](https://github.com/AraBlocks/cfsnet/compare/0.15.2...0.16.0) (2019-02-22)
+
+
+### Features
+
+* **create.js,drive.js:** Support 'storeSecretKey' switch ([0d1abf2](https://github.com/AraBlocks/cfsnet/commit/0d1abf2))
+
+
+
+## [0.15.2](https://github.com/AraBlocks/cfsnet/compare/0.15.1...0.15.2) (2018-12-13)
+
+
+### Bug Fixes
+
+* **create:** pass latest option to hyperdrive ([9142814](https://github.com/AraBlocks/cfsnet/commit/9142814))
 
 
 
