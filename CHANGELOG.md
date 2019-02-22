@@ -1,3 +1,12 @@
+# [0.17.0](https://github.com/AraBlocks/cfsnet/compare/0.16.1...0.17.0) (2019-02-22)
+
+
+### Bug Fixes
+
+* **create.js:** Assign random ID if not given ([31abfa9](https://github.com/AraBlocks/cfsnet/commit/31abfa9))
+
+
+
 ## [0.16.1](https://github.com/AraBlocks/cfsnet/compare/0.16.0...0.16.1) (2019-02-22)
 
 
