@@ -46,6 +46,7 @@ async function createCFS(opts) {
 
   const {
     sparseMetadata = false,
+    storeSecretKey = true,
     eventStream = true,
     revision = null,
     shallow = false,
@@ -77,6 +78,7 @@ async function createCFS(opts) {
 
   // root HyperDrive instance
   const drive = await createCFSDrive({
+    storeSecretKey: false,
     latest: true,
 
     secretKey,
@@ -138,6 +140,7 @@ async function createCFS(opts) {
   await createPartition(drive.VAR, shallow ? ram : null, opts.partitions.var)
 
   const home = await partitions.create(drive.HOME, {
+    storeSecretKey,
     sparseMetadata,
     revision,
     storage,
@@ -634,6 +637,7 @@ async function createCFS(opts) {
       secretKey: kp.secretKey,
       storage: storageOverride || storage,
       key: kp.key || kp.publicKey,
+      storeSecretKey,
     })
   }
 
@@ -835,7 +839,7 @@ async function createCFSDirectories({
   id, path, drive, key, sparse
 }) {
   path = path || createCFSKeyPath({ id, key })
-  drive = await (drive || createCFSDrive({ path, key, sparse }))
+  drive = await drive
 
   debug(
     'Ensuring CFS directories for "%s" with key "%s"',
@@ -856,7 +860,7 @@ async function createCFSFiles({
   id, path, drive, key, sparse, secretKey
 }) {
   path = path || createCFSKeyPath({ id })
-  drive = await (drive || createCFSDrive({ path, key, sparse }))
+  drive = await drive
   debug(
     'Ensuring CFS files for "%s" with key "%s"',
     path, drive.key.toString('hex')
