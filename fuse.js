@@ -164,7 +164,8 @@ async function mount(path, cfs, opts) {
 
     try {
       const stat = await cfs.stat(path)
-      const out = Buffer.alloc((length - 1) + (stat.size - position))
+      const size = stat.size - (stat.size - (position + length))
+      const out = Buffer.alloc(size)
       const buf = await pify(collect)(cfs.createReadStream(path))
 
       buf.copy(out, 0)

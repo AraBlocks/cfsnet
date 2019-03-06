@@ -174,6 +174,11 @@ async function createCFS(opts) {
         }
 
         const partition = partitions.resolve(filename)
+
+        if (!partition || root === partition) {
+          return cb(new Error('AccessDenied'))
+        }
+
         filename = partition.resolve(filename)
 
         // acquire file descriptor
@@ -512,6 +517,8 @@ async function createCFS(opts) {
       if ('string' === typeof name) {
         const partition = partitions.resolve(name)
         return partition.replicate(opts)
+      } else if (name && !opts) {
+        opts = name
       }
 
       const expectedFeeds = 2 * Object.keys(partitions).length
