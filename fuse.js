@@ -1,5 +1,6 @@
 /* eslint-disable no-bitwise */
 const collect = require('collect-stream')
+const onExit = require('exit-hook')
 const debug = require('debug')('cfsnet:fuse')
 const fuse = require('fuse-bindings')
 const pify = require('pify')
@@ -45,7 +46,18 @@ async function mount(path, cfs, opts) {
     unlink,
     mkdir,
     rmdir,
+    utimens,
   })
+
+  onExit(() => {
+    fuse.unmount(path)
+  })
+
+  return { unmount }
+
+  async function unmount() {
+    await pify(fuse.unmount)(path)
+  }
 
   async function access(path, mode, done) {
     D('access: %s (%s)', path, mode)

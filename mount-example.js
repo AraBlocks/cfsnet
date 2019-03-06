@@ -24,8 +24,8 @@ async function main() {
 
   await pify(mkdirp)('./mnt/reader')
   await pify(mkdirp)('./mnt/writer')
-  await mount('./mnt/reader', reader)
-  await mount('./mnt/writer', writer)
+  await mount('./mnt/reader', reader, { displayFolder: true, force: true })
+  await mount('./mnt/writer', writer, { displayFolder: true, force: true })
   await replicate(writer, reader)
 
   reader.readFile('/etc/cfs-signature', console.log)
