@@ -38,14 +38,15 @@ test.serial('successfully closes cfs', async (t) => {
 })
 
 test.serial('successfully closes file descriptor', async (t) => {
-  cfs.fileDescriptors['20'] = cfs.partitions.home
+  const off = Object.keys(cfs.partitions).indexOf('home')
+  cfs.fileDescriptors[20 + off] = cfs.partitions.home
   sandbox.stub(cfs.partitions.home, 'close').callsFake((fd, cb) => {
     t.is(fd, 20)
     cb()
   })
 
   try {
-    await cfs.close(20)
+    await cfs.close(off + 20)
   } catch (e) {
     t.fail(e)
   }

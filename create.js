@@ -9,12 +9,14 @@ const JSONStream = require('streaming-json-stringify')
 const constants = require('./constants')
 const isBrowser = require('is-browser')
 const isBuffer = require('is-buffer')
+const through = require('through2')
 const unixify = require('unixify')
 const pumpcat = require('pumpcat')
 const crypto = require('./crypto')
 const mkdirp = require('mkdirp')
 const Batch = require('batch')
 const debug = require('debug')('cfsnet:create')
+const pump = require('pump')
 const tree = require('./tree')
 const pify = require('pify')
 const env = require('./env')
@@ -175,14 +177,15 @@ async function createCFS(opts) {
         filename = partition.resolve(filename)
 
         // acquire file descriptor
+        const offset = Object.keys(partitions).indexOf(partition[$PARTITION_NAME])
         const fd = await pify(partition.open)(filename, flags, mode)
 
         if (!fd || fd <= 0) {
           return cb(new Error('AccessDenied'))
         }
 
-        fileDescriptors[fd] = partition
-        return cb(null, fd)
+        fileDescriptors[fd + offset] = partition
+        return cb(null, fd + offset)
       }
 
       return cb(new Error('BadOpenRequest'))
@@ -265,7 +268,9 @@ async function createCFS(opts) {
         return cb(new Error('NotOpened'))
       }
 
-      return partition.close(fd, cb)
+      const offset = Object.keys(partitions).indexOf(partition[$PARTITION_NAME])
+
+      return partition.close(fd - offset, cb)
     },
 
     async read(fd, ...args) {
@@ -289,7 +294,9 @@ async function createCFS(opts) {
         return cb(new Error('NotOpened'))
       }
 
-      return partition.read(fd, ...args)
+      const offset = Object.keys(partitions).indexOf(partition[$PARTITION_NAME])
+
+      return partition.read(fd - offset, ...args)
     },
 
     async rmdir(filename, cb) {
@@ -354,6 +361,13 @@ async function createCFS(opts) {
         opts = {}
       }
       filename = drive.resolve(filename)
+      if ('/' === filename) {
+        const dirs = Object.keys(partitions)
+        if ('function' === typeof cb) {
+          process.nextTick(cb, null, dirs)
+        }
+        return dirs
+      }
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
       debug('partition: %s: readdir: %s', partition[$PARTITION_NAME], filename)
@@ -365,11 +379,18 @@ async function createCFS(opts) {
       filename = drive.resolve(filename)
       const partition = partitions.resolve(filename)
       filename = partition.resolve(filename)
+
       if ('function' === typeof mode) {
         cb = mode
         mode = constants.F_OK
       }
+
       debug('partition: %s: access: %s', partition[$PARTITION_NAME], filename)
+
+      if (null === mode || undefined === mode) {
+        mode = constants.F_OK
+      }
+
       switch (mode) {
       case constants.W_OK:
         if (true !== partition.writable) {
@@ -385,7 +406,9 @@ async function createCFS(opts) {
 
       case constants.F_OK:
         try {
-          await pify(partition.access)(filename)
+          if (root !== partition) {
+            await pify(partition.access)(filename)
+          }
         } catch (err) {
           debug('F_OK != true')
           debug(err)
@@ -399,7 +422,8 @@ async function createCFS(opts) {
       default:
         return cb(new Error('NotSupported'))
       }
-      return cb(null, true)
+
+      cb(null)
     },
     /* eslint-enable no-fallthrough */
 
@@ -485,13 +509,29 @@ async function createCFS(opts) {
     },
 
     replicate(name, opts) {
-      if ('object' === typeof name) {
-        opts = name || {}
-        name = drive.HOME
+      if ('string' === typeof name) {
+        const partition = partitions.resolve(name)
+        return partition.replicate(opts)
       }
 
-      name = name || drive.HOME
-      return partitions.resolve(name).replicate(opts)
+      const expectedFeeds = 2 * Object.keys(partitions).length
+      const stream = root.replicate.call(drive, Object.assign({
+        get expectedFeeds() { return expectedFeeds }
+      }, opts))
+
+      if (!opts || 'object' !== typeof opts) {
+        opts = {}
+      }
+
+      opts.stream = stream
+
+      for (const k in partitions) {
+        if ('function' === typeof partitions[k].replicate) {
+          partitions[k].replicate(opts)
+        }
+      }
+
+      return stream
     },
 
     update(name, cb) {
@@ -664,6 +704,9 @@ function createRoot(drive) {
     [$PARTITION_NAME]: 'root',
     resolve: identity,
     history: drive.history,
+    replicate: drive.replicate,
+
+    key: drive.key,
 
     open: drive.open,
     stat: drive.stat,
