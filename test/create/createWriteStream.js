@@ -1,8 +1,8 @@
 const { createCFS } = require('../../create')
-const { test } = require('ava')
 const cleanup = require('../../test/helpers/cleanup')
+const test = require('ava')
 
-test.cb.after((t) => {
+test.afterEach.cb((t) => {
   t.plan(0)
 
   cleanup.remove('.cfses', t.end)

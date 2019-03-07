@@ -15,6 +15,6 @@ test('env.CFS_ROOT_DIR accessor', async (t) => {
   t.true(dir === env.CFS_ROOT_DIR)
 
   await createCFS({ id: 'test' })
-  await t.notThrows(pify(fs.access)(dir))
+  await t.notThrows(() => pify(fs.access)(dir))
   await pify(rimraf)(dir)
 })

@@ -1,8 +1,7 @@
 const { existsSync } = require('fs')
 const { createCFS } = require('../../create')
-const { test } = require('ava')
 const cleanup = require('../../test/helpers/cleanup')
-
+const test = require('ava')
 
 test('cfs is created', async (t) => {
   const cfs = await createCFS({ // eslint-disable-line no-unused-vars
@@ -20,12 +19,12 @@ test('cfs is created in non-existant folder', async (t) => {
   t.true(existsSync('doesntexist'))
 })
 
-test.cb.after((t) => {
+test.afterEach.cb((t) => {
   t.plan(0)
   cleanup.remove('doesntexist', t.end)
 })
 
-test.cb.after((t) => {
+test.afterEach.cb((t) => {
   t.plan(0)
   const partitions = ['etc', 'home', 'lib', 'metadata', 'tmp', 'var']
   cleanup.remove(`./test{/${partitions.join(',/')}}`, t.end)
