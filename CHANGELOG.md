@@ -1,3 +1,12 @@
+## [0.18.3](https://github.com/AraBlocks/cfsnet/compare/0.18.2...0.18.3) (2019-03-07)
+
+
+### Bug Fixes
+
+* **package.json:** forgot comma ([0132fc1](https://github.com/AraBlocks/cfsnet/commit/0132fc1))
+
+
+
 ## [0.18.2](https://github.com/AraBlocks/cfsnet/compare/0.18.0...0.18.2) (2019-03-07)
 
 
