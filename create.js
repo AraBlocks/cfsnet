@@ -381,20 +381,20 @@ async function createCFS(opts) {
 
     /* eslint-disable no-fallthrough */
     async access(filename, mode, cb) {
-      filename = drive.resolve(filename)
-      const partition = partitions.resolve(filename)
-      filename = partition.resolve(filename)
-
       if ('function' === typeof mode) {
         cb = mode
         mode = constants.F_OK
       }
 
-      debug('partition: %s: access: %s', partition[$PARTITION_NAME], filename)
-
       if (null === mode || undefined === mode) {
         mode = constants.F_OK
       }
+
+      filename = drive.resolve(filename)
+      const partition = partitions.resolve(filename)
+      filename = partition.resolve(filename)
+
+      debug('partition: %s: access: %s', partition[$PARTITION_NAME], filename)
 
       switch (mode) {
       case constants.W_OK:
@@ -422,7 +422,7 @@ async function createCFS(opts) {
         break
 
       case constants.X_OK:
-        return cb(new Error('NotSupported'))
+        return cb(null)
 
       default:
         return cb(new Error('NotSupported'))
@@ -430,8 +430,8 @@ async function createCFS(opts) {
 
       cb(null)
     },
-    /* eslint-enable no-fallthrough */
 
+    /* eslint-enable no-fallthrough */
     async download(filename, cb) { // eslint-disable-line consistent-return
       if ('function' === typeof filename) {
         filename = null
@@ -831,7 +831,7 @@ function createPartitionManager(path, root, drive) {
             const regex = RegExp(`^/${name}`)
             const resolved = unixify(filename).replace(regex, '')
             debug('partition %s: resolve: %s -> %s', filename, resolved)
-            return resolved
+            return resolved || '/'
           }
         })
 
