@@ -1,9 +1,10 @@
-## [0.18.1](https://github.com/AraBlocks/cfsnet/compare/0.18.0...0.18.1) (2019-03-07)
+## [0.18.2](https://github.com/AraBlocks/cfsnet/compare/0.18.0...0.18.2) (2019-03-07)
 
 
 ### Bug Fixes
 
-* **create:** storeSecretKey passthru ([266ff13](https://github.com/AraBlocks/cfsnet/commit/266ff13))
+* **create:** storeSecretKey passthru ([a13d78f](https://github.com/AraBlocks/cfsnet/commit/a13d78f))
+* **fuse.js:** Fix 'fsync' signature ([520544a](https://github.com/AraBlocks/cfsnet/commit/520544a))
 
 
 
