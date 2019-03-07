@@ -28,6 +28,7 @@
     "destroy.js",
     "drive.js",
     "env.js",
+    "fuse.js"
     "key.js",
     "key-path.js",
     "signalhub.js",
