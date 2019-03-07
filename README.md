@@ -33,6 +33,7 @@ This project is in _active_ development.
 ## Dependencies
 
 * [Node](https://nodejs.org/en/download/)
+* pkg-config (`brew install pkg-config` for Macos)
 
 ## Installation
 
