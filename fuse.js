@@ -89,13 +89,19 @@ async function mount(path, cfs, opts) {
 
   D('Mounting...')
 
+  const options = [
+    `umask=${process.umask()}`,
+    'default_permissions',
+  ].concat(opts.options).filter(Boolean)
+
+  if ('darwin' === process.platform) {
+    options.push('allow_other')
+  }
+
   await pify(fuse.mount)(path, {
     displayFolder,
+    options,
     force,
-    options: [
-      'allow_other',
-      `umask=${process.umask()}`
-    ],
 
     // fs ops
     access,
@@ -127,7 +133,7 @@ async function mount(path, cfs, opts) {
     getxattr,
     listxattr,
     removexattr,
-    statfs
+    statfs,
   })
 
   onExit(() => {
