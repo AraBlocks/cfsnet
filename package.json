@@ -71,7 +71,6 @@
     "sodium-universal": "^2.0.0",
     "streaming-json-stringify": "^3.1.0",
     "temp-dir": "^1.0.0",
-    "through2": "^3.0.1",
     "to-buffer": "^1.1.1",
     "turbo-net": "^1.4.0",
     "unixify": "^1.0.0",
