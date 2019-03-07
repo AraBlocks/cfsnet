@@ -80,7 +80,7 @@ async function createCFS(opts) {
 
   // root HyperDrive instance
   const drive = await createCFSDrive({
-    storeSecretKey: false,
+    storeSecretKey,
     latest: true,
 
     secretKey,
