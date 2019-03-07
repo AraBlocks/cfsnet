@@ -1,3 +1,12 @@
+## [0.18.1](https://github.com/AraBlocks/cfsnet/compare/0.18.0...0.18.1) (2019-03-07)
+
+
+### Bug Fixes
+
+* **create:** storeSecretKey passthru ([266ff13](https://github.com/AraBlocks/cfsnet/commit/266ff13))
+
+
+
 # [0.18.0](https://github.com/AraBlocks/cfsnet/compare/0.17.0...0.18.0) (2019-03-07)
 
 
