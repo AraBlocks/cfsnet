@@ -396,17 +396,21 @@ async function createCFS(opts) {
 
       debug('partition: %s: access: %s', partition[$PARTITION_NAME], filename)
 
+      if ('/' === filename) {
+        return cb(null)
+      }
+
       switch (mode) {
       case constants.W_OK:
         if (true !== partition.writable) {
           debug('writable=false')
-          return cb(new Error('AccessDenied'))
+          return cb(new Error('AccessDenied (W_OK)'))
         }
 
       case constants.R_OK:
         if (true !== partition.readable) {
           debug('readable=false')
-          return cb(new Error('AccessDenied'))
+          return cb(new Error('AccessDenied (R_OK)'))
         }
 
       case constants.F_OK:
@@ -417,7 +421,7 @@ async function createCFS(opts) {
         } catch (err) {
           debug('F_OK != true')
           debug(err)
-          return cb(new Error('AccessDenied'))
+          return cb(new Error('AccessDenied (F_OK)'))
         }
         break
 
@@ -425,7 +429,6 @@ async function createCFS(opts) {
         return cb(null)
 
       default:
-        return cb(new Error('NotSupported'))
       }
 
       cb(null)
@@ -737,6 +740,9 @@ function createRoot(drive) {
     createDiffStream: drive.createDiffStream,
     createReadStream: drive.createReadStream,
     createWriteStream: drive.createWriteStream,
+
+    get readable() { return drive.readable },
+    get writable() { return drive.writable }
   }
 }
 

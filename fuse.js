@@ -50,7 +50,7 @@ async function stat(cfs, path) {
     uid: process.getuid(),
     size: st.size || 4 * 1024,
     mode: st.isFile()
-      ? fs.constants.S_IFREG | 0o755
+      ? fs.constants.S_IFREG | 0o644
       : fs.constants.S_IFDIR | 0o755
   })
 }
@@ -78,6 +78,8 @@ async function mount(path, cfs, opts) {
 
   const tmpStorage = await createTmpStorage(path, cfs)
 
+  const xattr = opts.xattr || new Map()
+
   const D = (fmt, ...args) => debug(
     `mount: %s -> %s: ${fmt}`,
     path,
@@ -90,6 +92,10 @@ async function mount(path, cfs, opts) {
   await pify(fuse.mount)(path, {
     displayFolder,
     force,
+    options: [
+      'allow_other',
+      `umask=${process.umask()}`
+    ],
 
     // fs ops
     access,
@@ -105,23 +111,30 @@ async function mount(path, cfs, opts) {
     mkdir,
     mknod,
     open,
+    opendir,
     read,
     readdir,
     readlink,
     release,
+    releasedir,
     rename,
     rmdir,
     truncate,
     unlink,
     utimens,
     write,
+    setxattr,
+    getxattr,
+    listxattr,
+    removexattr,
+    statfs
   })
 
   onExit(() => {
     fuse.unmount(path)
   })
 
-  return { unmount }
+  return { unmount, xattr }
 
   async function unmount() {
     await pify(fuse.unmount)(path)
@@ -130,7 +143,7 @@ async function mount(path, cfs, opts) {
   async function access(path, mode, done) {
     D('access: %s (%s)', path, mode)
     try {
-      await cfs.access(path, mode)
+      await cfs.access(path, 0)
       done()
     } catch (err) {
       D('access: %s: error:', path, err.message)
@@ -309,6 +322,11 @@ async function mount(path, cfs, opts) {
     }
   }
 
+  async function opendir(path, flags, done) {
+    D('opendir: %s (%s [%s])', path, flags, stringFromFlags(flags))
+    done()
+  }
+
   async function read(path, fd, buffer, length, position, done) {
     D('read: %s (%s) len=%s pos=%s', path, fd, length, position)
 
@@ -326,8 +344,13 @@ async function mount(path, cfs, opts) {
         const out = await pify(collect)(cfs.createReadStream(path, {
           start: position, length
         }))
-        out.copy(buffer)
-        done(out.length)
+        if (Buffer.isBuffer(out)) {
+          out.copy(buffer)
+
+          done(out.length)
+        } else {
+          done(0)
+        }
       } catch (err) {
         D('read: %s: error:', path, err.message)
         done(fuse.EAGAIN)
@@ -380,6 +403,11 @@ async function mount(path, cfs, opts) {
     }
   }
 
+  async function releasedir(path, fd, done) {
+    D('releasedir: %s (%s)', path, fd)
+    done()
+  }
+
   async function rename(src, dst, done) {
     D('rename: %s -> %s', src, dst)
 
@@ -398,7 +426,6 @@ async function mount(path, cfs, opts) {
     // check path access first
     try {
       await cfs.access(dst)
-      return done(fuse.EXISTS)
     } catch (err) {
       void err
     }
@@ -456,9 +483,66 @@ async function mount(path, cfs, opts) {
     }
   }
 
+  async function setxattr(path, name, buf, len, offset, flags, done) {
+    D('setxattr: %s name=%s flags=%d', path, name, flags)
+    const val = buf.slice(offset, offset + len)
+
+    const map = xattr.get(path) || new Map()
+    map.set(name, val)
+
+    xattr.set(path, map)
+    done(0)
+  }
+
+  async function getxattr(path, name, buf, len, offset, done) {
+    D('getxattr: %s name=%s', path, name)
+    const map = xattr.get(path)
+    if (map) {
+      const val = map.get(name)
+
+      if (Buffer.isBuffer(val)) {
+        val.copy(buf, offset)
+        return done(val.length)
+      }
+    }
+    done(-1)
+  }
+
+  async function listxattr(path, buf, len, done) {
+    D('listxattr: %s', path)
+    const map = xattr.get(path)
+
+    if (map) {
+      const buffers = Buffer.concat(map.entries().map(e => e[1]))
+      buffers.copy(buf, 0, 0, len)
+      return done(buffers.length)
+    }
+    done(-1)
+  }
+
+  async function removexattr(path, name, done) {
+    D('removexattr: %s name=%s', path, name)
+    const map = xattr.get(path)
+    map.delete(name)
+
+    done()
+  }
+
   async function statfs(path, done) {
     D('statfs: %s', path)
-    done(0)
+    done(0, {
+      bsize: 1000000,
+      frsize: 1000000,
+      blocks: 1000000,
+      bfree: 1000000,
+      bavail: 1000000,
+      files: 1000000,
+      ffree: 1000000,
+      favail: 1000000,
+      fsid: 1000000,
+      flag: 1000000,
+      namemax: 1000000
+    })
   }
 
   async function truncate(path, size, done) {

@@ -92,7 +92,7 @@ test.serial('F_OK access implicitly checked', async (t) => {
   const spy = sinon.spy(cfs.partitions.var, 'access')
 
   try {
-    await cfs.access('/var')
+    await cfs.access('/var/log')
     t.true(spy.called)
   } catch (e) {
     console.log(e)
