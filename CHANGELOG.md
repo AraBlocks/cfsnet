@@ -1,3 +1,17 @@
+# [0.18.0](https://github.com/AraBlocks/cfsnet/compare/0.17.0...0.18.0) (2019-03-07)
+
+
+### Bug Fixes
+
+* **fuse:** Correctly compute size for writes ([f5a83f5](https://github.com/AraBlocks/cfsnet/commit/f5a83f5))
+
+
+### Features
+
+* **fuse:** Introduce fuse mount and full replication ([1d238c7](https://github.com/AraBlocks/cfsnet/commit/1d238c7))
+
+
+
 # [0.17.0](https://github.com/AraBlocks/cfsnet/compare/0.16.1...0.17.0) (2019-02-22)
 
 
