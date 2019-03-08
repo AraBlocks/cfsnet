@@ -270,8 +270,8 @@ async function mount(path, cfs, opts) {
     done()
   }
 
-  async function fsyncdir(path, fd, done) {
-    D('fsyncdir: %s (%s)', path, fd)
+  async function fsyncdir(path, fd, datasync, done) {
+    D('fsyncdir: %s (%s)', path, fd, datasync)
     done()
   }
 
