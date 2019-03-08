@@ -14,6 +14,15 @@ const raf = require('random-access-file')
 const ras = require('random-access-stream')
 const fs = require('fs')
 
+// from http://man7.org/linux/man-pages/man2/statfs.2.html
+const FUSE_SUPER_MAGIC = 0x65735546
+
+// from: https://code.woboq.org/gcc/include/bits/statvfs.h.html
+const ST_NODIRATIME = 0x0800
+const ST_NOATIME = 0x0400
+const ST_NOEXEC = 0x0008
+const ST_RDONLY = 0x0001
+
 function stringFromFlags(flags) {
   flags &= 3
   if (0 === flags) { return 'r' }
@@ -45,13 +54,26 @@ async function stat(cfs, path) {
     debug('stat: %s: error: %s', path, err)
   }
 
+  if (st.isFile()) {
+    st.mode = fs.constants.S_IFREG
+    if (cfs.writable) {
+      st.mode |= 0o744
+    } else {
+      st.mode |= 0o444
+    }
+  } else {
+    st.mode = fs.constants.S_IFDIR
+    if (cfs.writable) {
+      st.mode |= 0o755
+    } else {
+      st.mode |= 0o744
+    }
+  }
+
   return Object.assign(st, {
     gid: process.getgid(),
     uid: process.getuid(),
     size: st.size || 4 * 1024,
-    mode: st.isFile()
-      ? fs.constants.S_IFREG | 0o644
-      : fs.constants.S_IFDIR | 0o755
   })
 }
 
@@ -90,9 +112,19 @@ async function mount(path, cfs, opts) {
   D('Mounting...')
 
   const options = [
-    `umask=${process.umask()}`,
     'default_permissions',
   ].concat(opts.options).filter(Boolean)
+
+  if (true === opts.umask) {
+    options.push(`umask=${process.umask()}`)
+  }
+
+  if (
+    opts.umask &&
+    ('number' === typeof opts.umask || 'string' === typeof opts.umask)
+  ) {
+    options.push(`umask=${opts.umask}`)
+  }
 
   if ('darwin' === process.platform) {
     options.push('allow_other')
@@ -137,7 +169,7 @@ async function mount(path, cfs, opts) {
   })
 
   onExit((done) => {
-    D('onexit: %s')
+    D('onexit: %s', path)
     fuse.unmount(path, done)
   })
 
@@ -512,7 +544,7 @@ async function mount(path, cfs, opts) {
         return done(val.length)
       }
     }
-    done(-1)
+    done(0)
   }
 
   async function listxattr(path, buf, len, done) {
@@ -524,7 +556,8 @@ async function mount(path, cfs, opts) {
       buffers.copy(buf, 0, 0, len)
       return done(buffers.length)
     }
-    done(-1)
+
+    done(0)
   }
 
   async function removexattr(path, name, done) {
@@ -537,19 +570,74 @@ async function mount(path, cfs, opts) {
 
   async function statfs(path, done) {
     D('statfs: %s', path)
-    done(0, {
-      bsize: 1000000,
-      frsize: 1000000,
-      blocks: 1000000,
-      bfree: 1000000,
-      bavail: 1000000,
-      files: 1000000,
-      ffree: 1000000,
-      favail: 1000000,
-      fsid: 1000000,
-      flag: 1000000,
-      namemax: 1000000
+
+    let nblocks = 0
+    let nfiles = 0
+    let flags = 0
+
+    for (const k in cfs.partitions) {
+      const { content } = cfs.partitions[k]
+      if (content && 'object' === typeof content) {
+        nblocks += cfs.partitions[k].content.length
+      }
+    }
+
+    if (false === cfs.writable) {
+      flags |= ST_RDONLY
+      flags |= ST_NOEXEC
+    }
+
+    flags |= ST_NODIRATIME
+    flags |= ST_NOATIME
+
+    await pify(walk)('/')
+
+    return done(0, {
+      ftype: FUSE_SUPER_MAGIC,
+      bsize: 64 * 1024,
+      frsize: 64 * 1024,
+      blocks: nblocks,
+      bfree: cfs.writable ? 1000000 : 0,
+      bavail: cfs.writable ? 1000000 : 0,
+      files: nfiles,
+      ffree: cfs.readable ? 0 : 1000000,
+      favail: 1024 * 1024,
+      fsid: parseInt(cfs.identifier.toString('hex'), 16),
+      flag: flags,
+
+      namelen: 1024 * 1024,
+      namemax: 1024 * 1024,
     })
+
+    function walk(dir, cb) {
+      cfs.readdir(dir, onreaddir)
+      function onreaddir(err, entries) {
+        if (err) {
+          return cb(err)
+        }
+
+        let pending = 0
+        const mix = path => (err, st) => {
+          onstat(err, Object.assign(st, { path }))
+          if (0 === --pending) cb()
+        }
+        for (const k of entries) {
+          const path = join(dir, k)
+          pending++
+          cfs.stat(path, mix(path))
+        }
+      }
+
+      function onstat(err, stat) {
+        if (err) {
+          return cb(err)
+        } else if (stat.isFile()) {
+          nfiles++
+        } else if (stat.isDirectory()) {
+          walk(stat.path, cb)
+        }
+      }
+    }
   }
 
   async function truncate(path, size, done) {
