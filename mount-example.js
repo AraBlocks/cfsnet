@@ -23,8 +23,7 @@ async function main() {
   })
 
   await replicate(writer, reader)
-  await pify(mkdirp)('./mnt/reader')
-  await pify(mkdirp)('./mnt/writer')
+  await pify(mkdirp)('./mnt')
 
   const { xattr } = await mount('./mnt/writer', writer, {
     displayFolder: true,
