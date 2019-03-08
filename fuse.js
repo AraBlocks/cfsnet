@@ -8,11 +8,17 @@ const TMPDIR = require('temp-dir')
 const onExit = require('async-exit-hook')
 const debug = require('debug')('cfsnet:fuse')
 const pump = require('pump')
-const fuse = require('fuse-bindings')
 const pify = require('pify')
 const raf = require('random-access-file')
 const ras = require('random-access-stream')
 const fs = require('fs')
+
+let fuse = null
+try {
+  fuse = require('fuse-bindings')
+} catch (err) {
+  debug(err)
+}
 
 // from http://man7.org/linux/man-pages/man2/statfs.2.html
 const FUSE_SUPER_MAGIC = 0x65735546
@@ -84,6 +90,10 @@ async function defaultTemporaryStorage(path, cfs) {
 }
 
 async function mount(path, cfs, opts) {
+  if (!fuse) {
+    throw new TypeError(`Cannot mount: ${path}: 'fuse-bindings' not loaded`)
+  }
+
   if (!opts || 'object' !== typeof opts) {
     opts = {}
   }
@@ -270,8 +280,8 @@ async function mount(path, cfs, opts) {
     done()
   }
 
-  async function fsyncdir(path, fd, done) {
-    D('fsyncdir: %s (%s)', path, fd)
+  async function fsyncdir(path, fd, datasync, done) {
+    D('fsyncdir: %s (%s)', path, datasync, fd)
     done()
   }
 
