@@ -1,8 +1,9 @@
-## [0.18.3](https://github.com/AraBlocks/cfsnet/compare/0.18.2...0.18.3) (2019-03-07)
+## [0.18.4](https://github.com/AraBlocks/cfsnet/compare/0.18.2...0.18.4) (2019-03-08)
 
 
 ### Bug Fixes
 
+* **fuse:** Use better aysnc exit hook ([0b5c310](https://github.com/AraBlocks/cfsnet/commit/0b5c310))
 * **package.json:** forgot comma ([0132fc1](https://github.com/AraBlocks/cfsnet/commit/0132fc1))
 
 
