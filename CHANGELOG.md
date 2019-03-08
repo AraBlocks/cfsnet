@@ -1,3 +1,12 @@
+## [0.18.5](https://github.com/AraBlocks/cfsnet/compare/0.18.4...0.18.5) (2019-03-08)
+
+
+### Bug Fixes
+
+* **mount-example:** mkdir -p './mnt/' only ([9286e23](https://github.com/AraBlocks/cfsnet/commit/9286e23))
+
+
+
 ## [0.18.4](https://github.com/AraBlocks/cfsnet/compare/0.18.2...0.18.4) (2019-03-08)
 
 
