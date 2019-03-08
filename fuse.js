@@ -5,7 +5,7 @@ const collect = require('collect-stream')
 const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
 const TMPDIR = require('temp-dir')
-const onExit = require('exit-hook')
+const onExit = require('async-exit-hook')
 const debug = require('debug')('cfsnet:fuse')
 const pump = require('pump')
 const fuse = require('fuse-bindings')
@@ -136,8 +136,9 @@ async function mount(path, cfs, opts) {
     statfs,
   })
 
-  onExit(() => {
-    fuse.unmount(path)
+  onExit((done) => {
+    D('onexit: %s')
+    fuse.unmount(path, done)
   })
 
   return { unmount, xattr }

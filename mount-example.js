@@ -22,11 +22,24 @@ async function main() {
     }
   })
 
+  await replicate(writer, reader)
   await pify(mkdirp)('./mnt/reader')
   await pify(mkdirp)('./mnt/writer')
-  const { xattr } = await mount('./mnt/writer', writer, { displayFolder: true, force: true })
-  await mount('./mnt/reader', reader, { displayFolder: true, force: true, xattr })
-  await replicate(writer, reader)
+
+  const { xattr } = await mount('./mnt/writer', writer, {
+    displayFolder: true,
+    force: true,
+  })
+
+  await mount('./mnt/reader', reader, {
+    xattr,
+    displayFolder: true,
+    force: true,
+    options: [
+      'modules=subdir',
+      'subdir=/home'
+    ]
+  })
 
   reader.readFile('/etc/cfs-signature', console.log)
   reader.readdir('/etc', console.log)
