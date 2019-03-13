@@ -36,7 +36,7 @@
     "tree.js",
     "ws.js"
   ],
-  "author": "Joseph Werle <werle@littlstar.com>",
+  "author": "Joseph Werle <joseph.werle@gmail.com>",
   "license": "MIT",
   "optionalDependencies": {
     "fuse-bindings": "^2.11.2"
@@ -93,5 +93,7 @@
     "shaka-player": "^2.3.4",
     "sinon": "^5.0.7",
     "videostream": "^2.4.2"
-  }
+  },
+  "contributors": [
+  ]
 }
