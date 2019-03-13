@@ -38,7 +38,7 @@ This project is in _active_ development.
 ## Installation
 
 ```bash
-$ npm install littlstar/cfsnet
+$ npm install cfsnet
 ```
 
 ## Example
