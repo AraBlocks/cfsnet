@@ -95,6 +95,7 @@
     "videostream": "^2.4.2"
   },
   "contributors": [
-    "Eric Jiang <ejiang9@gmail.com>"
+    "Eric Jiang <ejiang9@gmail.com>",
+    "Vanessa Pyne <vipyne@gmail.com>"
   ]
 }
