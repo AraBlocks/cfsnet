@@ -12,7 +12,7 @@ some what equivalent to how Linux file systems are distributed through Docker
 containers and how the `POSIX.1-1988` Tar file format represents archive files
 as binary objects (Tarballs).
 
-> INSERT WHITE PAPER LINK HERE
+> INSERT WHITE PAPER/TECHNICAL DOCUMENT LINK HERE
 
 ## Summary
 
@@ -41,17 +41,10 @@ This project is in _active_ development.
 $ npm install littlstar/cfsnet
 ```
 
-## Usage
-
-```js
-const { createCFS } = require('cfsnet/create')
-const { destroyCFS } = require('cfsnet/destroy')
-const { createCFSDiscoverySwarm } = require('cfsnet/swarm')
-```
-
 ## Example
 
 ```js
+const { createCFS } = require('cfsnet/create')
 const id = 'my-file-system'
 const cfs = await createCFS({ id })
 
@@ -65,118 +58,8 @@ await cfs.writeFile('./hello.txt', 'world') // will write to /home/hello.txt
 const buffer = await cfs.readFile('./hello.txt') // will read ./hello.txt
 
 // read HOME (~) directory
-console.log(await cfs.readdir('~'))
+console.log(await cfs.readdir('~/hello.txt'))
 ```
-
-## API
-
-### `cfs = await createCFS(opts)`
-
-TODO
-
-#### `fd = await cfs.open(filename, [flags], [mode])`
-
-TODO
-
-#### `stats = await cfs.stat(filename, [opts])`
-
-TODO
-
-#### `stats = await cfs.lstat(filename, [opts])`
-
-TODO
-
-#### `await cfs.close(fd)`
-
-TODO
-
-#### `await cfs.read(fd, buffer, offset, length, position)`
-
-TODO
-
-#### `await cfs.rmdir(dirname)`
-
-TODO
-
-#### `await cfs.touch(filename)`
-
-TODO
-
-#### `await cfs.rimraf(filename)`
-
-TODO
-
-#### `await cfs.unlink(filename)`
-
-TODO
-
-#### `await cfs.mkdir(filename, [opts])`
-
-TODO
-
-#### `await cfs.mkdirp(filename, [opts])`
-
-TODO
-
-#### `files = await cfs.readdir(dirname, [opts])`
-
-TODO
-
-#### `await cfs.access(filename, [mode])`
-
-TODO
-
-#### `await cfs.download([filename])`
-
-TODO
-
-#### `buffer = await cfs.readFile(filename, [opts])`
-
-TODO
-
-#### `await cfs.writeFile(filename, buffer, [opts])`
-
-TODO
-
-#### `stream = cfs.createReadStream(filename, [opts])`
-
-TODO
-
-#### `stream = cfs.createWriteStream(filename, [opts])`
-
-TODO
-
-#### `stream = cfs.history(partition, [opts])`
-
-TODO
-
-#### `stream = cfs.replicate(partition, [opts])`
-
-TODO
-
-#### `cfs.update(callback)`
-
-TODO
-
-#### `cfs.ready(callback)`
-
-TODO
-
-#### `path = cfs.resolve(filename)`
-
-TODO
-
-### `destroyed = await destroyCFS(opts)`
-
-TODO
-
-### `swarm = await createCFSDiscoverySwarm(opts)`
-
-TODO
-
-### `path = await createCFSKeyPath(opts)`
-
-TODO
 
 ## Contributing
 
@@ -192,8 +75,9 @@ TODO
 
 ## License
 
-LGPL-3.0
+MIT
 
 
-[hyperdrive]: https://github.com/orgs/AraBlocks/teams/audit/members
-[dat]: TODO
+[hyperdrive]: https://github.com/mafintosh/hyperdrive
+[hypercore]: https://github.com/mafintosh/hypercore
+[dat]: https://github.com/datproject/dat

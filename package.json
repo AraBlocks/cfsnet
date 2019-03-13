@@ -37,7 +37,7 @@
     "ws.js"
   ],
   "author": "Joseph Werle <werle@littlstar.com>",
-  "license": "Unlicense",
+  "license": "MIT",
   "optionalDependencies": {
     "fuse-bindings": "^2.11.2"
   },
