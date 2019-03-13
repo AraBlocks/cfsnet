@@ -94,5 +94,7 @@
     "sinon": "^5.0.7",
     "videostream": "^2.4.2"
   },
-  "contributors": []
+  "contributors": [
+    "Eric Jiang <ejiang9@gmail.com>"
+  ]
 }
