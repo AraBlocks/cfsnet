@@ -225,7 +225,7 @@ async function mount(path, cfs, opts) {
 
     try {
       await cfs.touch(path)
-      const fd = await cfs.open(path, 'r+', mode)
+      const fd = await cfs.open(path, 'w+', mode)
       done(0, fd)
     } catch (err) {
       D('create: %s: error:', path, err.message)
@@ -380,13 +380,23 @@ async function mount(path, cfs, opts) {
   async function read(path, fd, buffer, length, position, done) {
     D('read: %s (%s) len=%s pos=%s', path, fd, length, position)
 
+    if ('function' === typeof cfs.partitions.home.write) {
+      try {
+        const nread = await cfs.read(fd, buffer, 0, length, position)
+        return done(nread)
+      } catch (err) {
+        D('read: %s: error:', path, err.message)
+        return done(fuse.EAGAIN)
+      }
+    }
+
     if (path in tmp) {
       tmp[path].read(position, length, (err, buf) => {
         if (err) {
           D('read: %s: error:', path, err.message)
           done(fuse.EAGAIN)
         } else {
-          done(0, buf.length)
+          done(buf.length)
         }
       })
     } else {
@@ -635,7 +645,8 @@ async function mount(path, cfs, opts) {
         for (const k of entries) {
           const path = join(dir, k)
           pending++
-          cfs.stat(path, mix(path))
+          const cb = mix(path)
+          stat(cfs, path).then(st => cb(null, st)).catch(cb)
         }
       }
 
