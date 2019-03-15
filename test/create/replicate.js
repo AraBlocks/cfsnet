@@ -38,24 +38,17 @@ test('replicate is called without errors', async (t) => {
 })
 
 test('replicate works without defining partition name and opts', async (t) => {
-  t.plan(1)
+  let planned = 0
+  for (const k in cfs.partitions) {
+    if ('function' === typeof cfs.partitions[k].replicate) {
+      planned++
+      sandbox.stub(cfs.partitions[k], 'replicate').callsFake((opts) => {
+        t.is(typeof opts.stream, 'object')
+      })
+    }
+  }
 
-  sandbox.stub(cfs.partitions, 'resolve').callsFake((name) => {
-    t.is(cfs.HOME, name)
-    return cfs.partitions.home
-  })
+  t.plan(planned)
 
   cfs.replicate({})
-})
-
-
-test('replicate works without defining partition name', async (t) => {
-  t.plan(1)
-
-  sandbox.stub(cfs.partitions, 'resolve').callsFake((name) => {
-    t.is(cfs.HOME, name)
-    return cfs.partitions.home
-  })
-
-  cfs.replicate()
 })
