@@ -182,7 +182,7 @@ async function createCFS(opts) {
 
         // acquire file descriptor
         const offset = Object.keys(partitions).indexOf(partition[$PARTITION_NAME])
-        const fd = await pify(partition.open)(filename, flags, mode)
+        const fd = await pify(partition.open)(filename, flags)
 
         if (!fd || fd <= 0) {
           return cb(new Error('AccessDenied'))
@@ -301,6 +301,32 @@ async function createCFS(opts) {
       const offset = Object.keys(partitions).indexOf(partition[$PARTITION_NAME])
 
       return partition.read(fd - offset, ...args)
+    },
+
+    async write(fd, ...args) {
+      let cb
+
+      if ('function' === typeof fd) {
+        cb = fd
+        fd = -1
+      } else {
+        // eslint-disable-next-line prefer-destructuring
+        cb = args.slice(-1)[0]
+      }
+
+      if (!fd || fd <= 0 || 'function' === typeof fd) {
+        return cb(new Error('NotOpened'))
+      }
+
+      const partition = fileDescriptors[fd]
+
+      if (!partition) {
+        return cb(new Error('NotOpened'))
+      }
+
+      const offset = Object.keys(partitions).indexOf(partition[$PARTITION_NAME])
+
+      return partition.write(fd - offset, ...args)
     },
 
     async rmdir(filename, cb) {
@@ -512,7 +538,15 @@ async function createCFS(opts) {
       }
 
       name = name || drive.HOME
-      return partitions.resolve(name).history(opts)
+      const partition = partitions.resolve(name)
+
+      if ('function' === typeof partition.history) {
+        return partition.history(opts)
+      } else if (partition._db && 'function' === typeof partition._db.createHistoryStream) {
+        return partition._db.createHistoryStream(opts)
+      }
+
+      throw new TypeError('Unable to create history stream')
     },
 
     replicate(name, opts) {
@@ -525,7 +559,8 @@ async function createCFS(opts) {
 
       const expectedFeeds = 2 * Object.keys(partitions).length
       const stream = root.replicate.call(drive, Object.assign({
-        get expectedFeeds() { return expectedFeeds }
+        get expectedFeeds() { return expectedFeeds },
+        set expectedFeeds(value) { void value }
       }, opts))
 
       if (!opts || 'object' !== typeof opts) {
