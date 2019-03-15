@@ -73,6 +73,7 @@ function wrap(drive) {
     'read',
     'stat',
     'lstat',
+    'write',
     'access',
     'unlink',
     'rmdir',
@@ -81,6 +82,7 @@ function wrap(drive) {
     'readFile',
     'writeFile',
 
+    'create',
     'ready',
     'history',
     'checkout',
@@ -95,6 +97,10 @@ function wrap(drive) {
   const fsdebug = require('debug')('cfsnet:drive:fs')
 
   Object.assign(drive, methods.reduce((proxy, method) => {
+    if ('function' !== typeof drive[method]) {
+      return proxy
+    }
+
     fs[method] = drive[method].bind(drive)
     return Object.assign(proxy, {
       [method]: (...args) => {
@@ -168,6 +174,18 @@ function wrap(drive) {
       })
     }
   })
+
+  if (drive.metadataFeed && !drive.metadata) {
+    Object.defineProperty(drive, 'metadata', {
+      get() { return drive.metadataFeed }
+    })
+  }
+
+  if (drive.contentFeed && !drive.content) {
+    Object.defineProperty(drive, 'content', {
+      get() { return drive.contentFeed }
+    })
+  }
 
   return drive
 }
