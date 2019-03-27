@@ -44,7 +44,7 @@
   "dependencies": {
     "async-exit-hook": "^2.0.1",
     "batch": "^0.6.1",
-    "cfsnet-protocol-buffers": "github:arablocks/cfsnet-protocol-buffers",
+    "cfsnet-protocol-buffers": "^0.1.11",
     "collect-stream": "^1.2.1",
     "connections": "^1.4.2",
     "debug": "^3.1.0",
