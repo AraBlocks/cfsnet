@@ -1,3 +1,12 @@
+## [0.19.3](https://github.com/arablocks/cfsnet/compare/0.19.2...0.19.3) (2019-08-15)
+
+
+### Features
+
+* support extensions ([4f446f8](https://github.com/arablocks/cfsnet/commit/4f446f8))
+
+
+
 ## [0.19.2](https://github.com/arablocks/cfsnet/compare/0.18.9...0.19.2) (2019-03-27)
 
 
@@ -245,12 +254,12 @@
 
 ### Bug Fixes
 
+* Address PR notes re: readme ([9c4b12a](https://github.com/arablocks/cfsnet/commit/9c4b12a))
+* Lint one line comment ([3fd3946](https://github.com/arablocks/cfsnet/commit/3fd3946))
 * **proto/ops/AccessFile:** Add new to NotSupported ([55da9b9](https://github.com/arablocks/cfsnet/commit/55da9b9))
 * **proto/ops/AccessFile:** Fix result encoding ([b074603](https://github.com/arablocks/cfsnet/commit/b074603)), closes [#5](https://github.com/arablocks/cfsnet/issues/5)
 * **proto/ops/Close:** Fix typo in Close ([2d726c6](https://github.com/arablocks/cfsnet/commit/2d726c6))
 * **proto/ops/RemoveDirectory:** Fix ENOTEMPTY err ([4a4c8e6](https://github.com/arablocks/cfsnet/commit/4a4c8e6)), closes [cfs-proto-server/#7](https://github.com/arablocks/cfsnet/issues/7)
-* Address PR notes re: readme ([9c4b12a](https://github.com/arablocks/cfsnet/commit/9c4b12a))
-* Lint one line comment ([3fd3946](https://github.com/arablocks/cfsnet/commit/3fd3946))
 
 
 
