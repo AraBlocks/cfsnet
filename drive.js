@@ -14,6 +14,7 @@ async function createCFSDrive(opts) {
   const {
     sparseMetadata = false,
     storeSecretKey = true,
+    extensions = [],
     secretKey = null,
     revision = null,
     storage = null,
@@ -30,6 +31,7 @@ async function createCFSDrive(opts) {
     version: revision,
     latest: Boolean(latest),
     sparse: Boolean(sparse),
+    extensions
   })
 
   // wait for drive to be ready
