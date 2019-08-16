@@ -50,6 +50,7 @@ async function createCFS(opts) {
     sparseMetadata = false,
     storeSecretKey = true,
     eventStream = true,
+    extensions = [],
     revision = null,
     shallow = false,
     storage = null,
@@ -94,7 +95,9 @@ async function createCFS(opts) {
         return storage(file, drive, path)
       }
       return raf(resolve(storage || path, file))
-    }
+    },
+
+    extensions
   })
 
   debug('drive created:', id, key, path)
