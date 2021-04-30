@@ -1,8 +1,6 @@
 CFSNET
 ======
 
-[![Build Status](https://travis-ci.com/AraBlocks/cfsnet.svg?token=6WjTyCg41y8MBmCzro5x&branch=master)](https://travis-ci.com/AraBlocks/cfsnet)
-
 ## Abstract
 
 The Conflict-Free File System Network, or _CFSNET_, is a distributed,
