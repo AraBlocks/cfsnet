@@ -3,7 +3,7 @@ const cleanup = require('../../test/helpers/cleanup')
 const sinon = require('sinon')
 const test = require('ava')
 
-test.afterEach.cb((t) => {
+test.beforeEach.cb((t) => {
   t.plan(0)
 
   cleanup.remove('./.cfses', t.end)
@@ -19,7 +19,7 @@ test.beforeEach(async () => {
   sandbox.restore()
 })
 
-test('mkdir is called without errors', async (t) => {
+test.serial('mkdir is called without errors', async (t) => {
   t.plan(1)
 
   const spy = sandbox.spy(cfs.partitions.home, 'mkdir')
@@ -30,9 +30,11 @@ test('mkdir is called without errors', async (t) => {
   } catch (e) {
     t.fail(e)
   }
+
+  spy.restore()
 })
 
-test('mkdir is called with cb', async (t) => {
+test.serial('mkdir is called with cb', async (t) => {
   t.plan(2)
 
   const spy = sandbox.spy(cfs.partitions.home, 'mkdir')
@@ -46,4 +48,6 @@ test('mkdir is called with cb', async (t) => {
       resolve()
     })
   })
+
+  spy.restore()
 })

@@ -1,10 +1,7 @@
-const messages = require('../messages')
 const debug = require('debug')('cfsnet:protocol:operations:DownloadFile')
 
-const {
-  NotFoundError,
-  BadRequestError,
-} = require('../error')
+const { NotFoundError, BadRequestError } = require('../error')
+const messages = require('../messages')
 
 /**
  * `DownloadFile(string path) -> void`

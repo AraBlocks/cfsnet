@@ -1,10 +1,11 @@
-const { ProtocolError } = require('./error')
 const { Duplex } = require('readable-stream')
+const extend = require('extend')
+const debug = require('debug')('cfsnet:protocol')
+
+const { ProtocolError } = require('./error')
 const operations = require('./operations')
 const messages = require('./messages')
 const crypto = require('../crypto')
-const extend = require('extend')
-const debug = require('debug')('cfsnet:protocol')
 
 const CFSNETKEY = Buffer.from('CFSNET1')
 const kZeroBuffer = Buffer.alloc(0)
@@ -49,7 +50,7 @@ function opname(code) {
 function toHex(value) {
   if (Buffer.isBuffer(value)) {
     return value.toString('hex')
-  } else if ('string' === typeof value) {
+  } if ('string' === typeof value) {
     return toHex(Buffer.from(value))
   }
   return toHex(String(value))
@@ -77,7 +78,7 @@ class Protocol extends Duplex {
     const { needsHandshake, isClient } = this
     if (needsHandshake) {
       return this.onhandshake(messages.Handshake.decode(chunk), cb)
-    } else if (isClient) {
+    } if (isClient) {
       return this.onresponse(messages.Response.decode(chunk), cb)
     }
     return this.onrequest(messages.Request.decode(chunk), cb)
@@ -338,7 +339,7 @@ class Protocol extends Duplex {
         buffer: kZeroBuffer,
         errorCode: messages.ErrorCode.NoError,
       })
-    } else if (operation > messages.Operation.NoOperation) {
+    } if (operation > messages.Operation.NoOperation) {
       for (const k in messages.Operation) {
         if (operation === messages.Operation[k]) {
           return this.onoperation(operation, request, buffer, cb)

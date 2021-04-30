@@ -1,6 +1,7 @@
+const debug = require('debug')('cfsnet:protocol:operations:UnlinkFile')
+
 const { BadRequestError, NotFoundError } = require('../error')
 const messages = require('../messages')
-const debug = require('debug')('cfsnet:protocol:operations:UnlinkFile')
 
 /**
  * `UnlinkFile(string path) -> string`

@@ -1,6 +1,7 @@
+const debug = require('debug')('cfsnet:protocol:operations:WriteFile')
+
 const { AccessDeniedError, BadRequestError } = require('../error')
 const messages = require('../messages')
-const debug = require('debug')('cfsnet:protocol:operations:WriteFile')
 
 /**
  * `WriteFile(string path, bytes buffer, [uint32 start], [uint32 end]) -> void`

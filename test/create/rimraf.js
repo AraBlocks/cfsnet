@@ -25,7 +25,8 @@ test.beforeEach(() => {
 test('rimraf is called without errors', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'rimraf').callsFake((_, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'rimraf').callsFake((_, cb) => {
+    stub.restore()
     t.pass()
     cb()
   })
@@ -40,7 +41,8 @@ test('rimraf is called without errors', async (t) => {
 test('rimraf is called with cb', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'rimraf').callsFake((_, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'rimraf').callsFake((_, cb) => {
+    stub.restore()
     cb()
   })
 

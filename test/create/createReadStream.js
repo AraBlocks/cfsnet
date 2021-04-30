@@ -12,18 +12,16 @@ test.afterEach.cb((t) => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async () => {
+test.beforeEach(async () => {
   cfs = await createCFS({
     path: './.cfses'
   })
-})
-
-test.beforeEach(() => {
   sandbox.restore()
 })
 
 test.serial('read stream is created', async (t) => {
-  sandbox.stub(cfs.partitions.home, 'createReadStream').callsFake((fileName) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'createReadStream').callsFake((fileName) => {
+    stub.restore()
     if ('win32' === process.platform) {
       t.true(fileName.includes('\\home\\test'))
     } else {

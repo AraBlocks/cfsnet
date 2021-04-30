@@ -12,20 +12,18 @@ test.afterEach.cb((t) => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async () => {
+test.beforeEach(async () => {
   cfs = await createCFS({
     path: './.cfses'
   })
-})
-
-test.beforeEach(() => {
   sandbox.restore()
 })
 
 test('rmdir is called without errors', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'rmdir').callsFake((_, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'rmdir').callsFake((_, cb) => {
+    stub.restore()
     t.pass()
     cb()
   })
@@ -40,7 +38,8 @@ test('rmdir is called without errors', async (t) => {
 test('rmdir is called with cb', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'rmdir').callsFake((_, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'rmdir').callsFake((_, cb) => {
+    stub.restore()
     cb()
   })
 

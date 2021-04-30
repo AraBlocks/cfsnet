@@ -1,32 +1,33 @@
 /* eslint-disable global-require */
 /* eslint-disable no-await-in-loop */
-const { createCFSKeyPath } = require('./key-path')
-const { normalizeCFSKey } = require('./key')
-const { createCFSDrive } = require('./drive')
 const { resolve } = require('path')
 const randombytes = require('randombytes')
 const JSONStream = require('streaming-json-stringify')
-const constants = require('./constants')
 const isBrowser = require('is-browser')
 const isBuffer = require('is-buffer')
 const unixify = require('unixify')
 const pumpcat = require('pumpcat')
-const crypto = require('./crypto')
 const mkdirp = require('mkdirp')
 const Batch = require('batch')
 const debug = require('debug')('cfsnet:create')
 const pump = require('pump')
-const tree = require('./tree')
 const pify = require('pify')
-const env = require('./env')
 const raf = require('random-access-file')
 const ram = require('random-access-memory')
 const ms = require('ms')
 
+const { createCFSKeyPath } = require('./key-path')
+const { normalizeCFSKey } = require('./key')
+const { createCFSDrive } = require('./drive')
+const constants = require('./constants')
+const crypto = require('./crypto')
+const tree = require('./tree')
+const env = require('./env')
+
 const $PARTITION_NAME = Symbol('partition name')
 const EVENT_LOG_FILE = '/var/log/events'
 
-const identity = i => i
+const identity = (i) => i
 
 /**
  * This function will create a CFS based on some input identifier if it does
@@ -90,9 +91,12 @@ async function createCFS(opts) {
     storage(file, drive, path) {
       if (file.includes('content')) {
         return ram()
-      } else if ('function' === typeof storage) {
+      }
+
+      if ('function' === typeof storage) {
         return storage(file, drive, path)
       }
+
       return raf(resolve(storage || path, file))
     }
   })
@@ -120,8 +124,10 @@ async function createCFS(opts) {
     get fileDescriptors() { return fileDescriptors },
     get identifier() { return identifier },
     get partitions() { return partitions },
-    get version() { return (partitions.home && partitions.home.version) || null },
     get root() { return root },
+    get version() {
+      return (partitions.home && partitions.home.version) || null
+    },
 
     get CFSSIGNATURE() { return '/etc/cfs-signature' },
     get CFSEPOCH() { return '/etc/cfs-epoch' },
@@ -181,7 +187,8 @@ async function createCFS(opts) {
         filename = partition.resolve(filename)
 
         // acquire file descriptor
-        const offset = Object.keys(partitions).indexOf(partition[$PARTITION_NAME])
+        const partitionNames = Object.keys(partitions)
+        const offset = partitionNames.indexOf(partition[$PARTITION_NAME])
         const fd = await pify(partition.open)(filename, flags)
 
         if (!fd || fd <= 0) {
@@ -254,7 +261,7 @@ async function createCFS(opts) {
 
         for (const k in partitions) {
           if (partitions[k] && 'function' === typeof partitions[k].close) {
-            batch.push(done => partitions[k].close(done))
+            batch.push((done) => partitions[k].close(done))
           }
         }
 
@@ -542,7 +549,9 @@ async function createCFS(opts) {
 
       if ('function' === typeof partition.history) {
         return partition.history(opts)
-      } else if (partition._db && 'function' === typeof partition._db.createHistoryStream) {
+      }
+
+      if (partition._db && 'function' === typeof partition._db.createHistoryStream) {
         return partition._db.createHistoryStream(opts)
       }
 
@@ -553,7 +562,7 @@ async function createCFS(opts) {
       if ('string' === typeof name) {
         const partition = partitions.resolve(name)
         return partition.replicate(opts)
-      } else if (name && !opts) {
+      } if (name && !opts) {
         opts = name
       }
 
@@ -633,7 +642,6 @@ async function createCFS(opts) {
 
   await createIdentifierFile()
   await createFileSystem()
-
   if (identifier) {
     process.nextTick(() => onidentifier(identifier))
   } else {
@@ -811,7 +819,7 @@ function createPartitionManager(path, root, drive) {
         if (filename in partitions) {
           debug('partitions: resolve: parse:', filename)
           return partitions[filename]
-        } else if (isTopDir(filename)) {
+        } if (isTopDir(filename)) {
           for (let i = 1; i < filename.length; ++i) {
             const slice = filename.slice(1, i + 1)
             if (slice in partitions) {
@@ -916,7 +924,8 @@ async function ensureCFSRootDirectoryAccess(opts) {
     await pify(fs.access)(env.CFS_ROOT_DIR)
   } catch (err) {
     // eslint-disable-next-line no-void
-    void (err, await pify(mkdirp)(env.CFS_ROOT_DIR, { fs }))
+    void err
+    await mkdirp(env.CFS_ROOT_DIR, { fs })
   }
 }
 

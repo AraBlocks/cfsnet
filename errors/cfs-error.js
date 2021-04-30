@@ -1,6 +1,7 @@
 class CFSError extends Error {
-  constuctor({ code, name, message } = {}) {
+  constructor({ code, name, message } = {}) {
     super(message)
+
     this.code = code
     this.name = name
     this.message = message

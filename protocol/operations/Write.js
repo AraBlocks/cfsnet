@@ -1,6 +1,7 @@
+const debug = require('debug')('cfsnet:protocol:operations:Write')
+
 const { NotImplementedError } = require('../error')
 const messages = require('../messages')
-const debug = require('debug')('cfsnet:protocol:operations:Write')
 
 /**
  * `Write(string path, bytes buffer, [uint32 start], [uint32 end]) -> bytes`

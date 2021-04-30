@@ -13,7 +13,7 @@ const kCFSKeyProtocolScheme = 'cfs://'
 function normalizeCFSKey(key) {
   if (null == key) {
     return null
-  } else if (Buffer.isBuffer(key)) {
+  } if (Buffer.isBuffer(key)) {
     key = key.toString('hex')
   } else {
     key = String(key || '')

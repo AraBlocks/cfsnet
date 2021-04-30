@@ -9,7 +9,7 @@ test.afterEach.cb((t) => {
 })
 
 let cfs
-test.before(async () => {
+test.beforeEach(async () => {
   cfs = await createCFS({
     path: './.cfses'
   })

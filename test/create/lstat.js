@@ -25,7 +25,8 @@ test.beforeEach(() => {
 test('lstat is called without errors', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'lstat').callsFake((_, _2, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'lstat').callsFake((_, _2, cb) => {
+    stub.restore()
     t.pass()
     cb()
   })
@@ -40,7 +41,8 @@ test('lstat is called without errors', async (t) => {
 test('lstat is called with cb', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'lstat').callsFake((_, _2, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'lstat').callsFake((_, _2, cb) => {
+    stub.restore()
     cb()
   })
 

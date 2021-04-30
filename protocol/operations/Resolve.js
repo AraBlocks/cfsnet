@@ -1,6 +1,7 @@
+const debug = require('debug')('cfsnet:protocol:operations:Resolve')
+
 const { BadRequestError } = require('../error')
 const messages = require('../messages')
-const debug = require('debug')('cfsnet:protocol:operations:Resolve')
 
 /**
  * `Resolve(string path) -> string`

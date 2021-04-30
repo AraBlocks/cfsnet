@@ -1,7 +1,8 @@
+const debug = require('debug')('cfsnet:protocol:operations:KeyPair')
+
 const { BadRequestError } = require('../error')
 const messages = require('../messages')
 const crypto = require('../../crypto')
-const debug = require('debug')('cfsnet:protocol:operations:KeyPair')
 
 /**
  * `KeyPair(string path) -> string`

@@ -1,12 +1,13 @@
-const messages = require('../messages')
 const debug = require('debug')('cfsnet:protocol:operations:AccessFile')
 
 const {
   NotSupportedError,
-  NotFoundError,
   AccessDeniedError,
   BadRequestError,
+  NotFoundError
 } = require('../error')
+
+const messages = require('../messages')
 
 /**
  * `AccessFile(string path, [uint32 mode]) -> string`

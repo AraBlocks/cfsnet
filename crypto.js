@@ -17,7 +17,10 @@ function generateDiscoveryKey(x) {
 }
 
 function generateKeyPair(x) {
-  return keyPair(x)
+  if (x) {
+    return keyPair(Buffer.from(x).slice(0, 32))
+  }
+  return keyPair()
 }
 
 function sha256(x) {

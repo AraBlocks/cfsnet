@@ -1,6 +1,7 @@
+const debug = require('debug')('cfsnet:protocol:operations:StatFile')
+
 const { BadRequestError } = require('../error')
 const messages = require('../messages')
-const debug = require('debug')('cfsnet:protocol:operations:StatFile')
 
 /**
  * `StatFile(string path) -> Stat`

@@ -1,11 +1,7 @@
-const messages = require('../messages')
 const debug = require('debug')('cfsnet:protocol:operations:Close')
 
-const {
-  AccessDeniedError,
-  BadRequestError,
-  NotOpenedError,
-} = require('../error')
+const { AccessDeniedError, BadRequestError, NotOpenedError } = require('../error')
+const messages = require('../messages')
 
 /**
  * `Close(uint32 fd) -> void`

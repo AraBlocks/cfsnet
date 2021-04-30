@@ -1,9 +1,10 @@
 /* eslint-disable global-require */
-const { createCFSKeyPath } = require('./key-path')
-const { normalizeCFSKey } = require('./key')
 const rimraf = require('rimraf')
 const debug = require('debug')('cfsnet:destroy')
 const pify = require('pify')
+
+const { createCFSKeyPath } = require('./key-path')
+const { normalizeCFSKey } = require('./key')
 
 /**
  * This function will attempt to destroy a CFS based on
@@ -15,9 +16,9 @@ async function destroyCFS(opts) {
   const { cfs = null, autoClose = true } = opts
   const id = opts.id || (cfs && cfs.identifier) || null
   const key = (
-    (opts.key && normalizeCFSKey(opts.key)) ||
-    (cfs && cfs.key.toString('hex')) ||
-    null
+    (opts.key && normalizeCFSKey(opts.key))
+    || (cfs && cfs.key.toString('hex'))
+    || null
   )
 
   const path = opts.path || createCFSKeyPath({ id })

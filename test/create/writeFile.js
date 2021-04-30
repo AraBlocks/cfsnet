@@ -18,14 +18,11 @@ test.before(async () => {
   })
 })
 
-test.beforeEach(() => {
-  sandbox.restore()
-})
-
 test('writeFile is called without errors', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'writeFile').callsFake((_, _2, _3, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'writeFile').callsFake((_, _2, _3, cb) => {
+    stub.restore()
     t.pass()
     cb()
   })
@@ -40,7 +37,8 @@ test('writeFile is called without errors', async (t) => {
 test('writeFile is called without errors - opts', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'writeFile').callsFake((_, _2, _3, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'writeFile').callsFake((_, _2, _3, cb) => {
+    stub.restore()
     t.pass()
     cb()
   })
@@ -55,7 +53,8 @@ test('writeFile is called without errors - opts', async (t) => {
 test('writeFile is called without errors - str', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'writeFile').callsFake((_, buf, _3, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'writeFile').callsFake((_, buf, _3, cb) => {
+    stub.restore()
     t.true(buf instanceof Buffer)
     cb()
   })

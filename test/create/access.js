@@ -13,14 +13,12 @@ test.afterEach.cb((t) => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async () => {
+test.beforeEach(async () => {
   cfs = await createCFS({
     id: `test/access`,
     path: './.cfses'
   })
-})
 
-test.beforeEach(() => {
   cfs.partitions.home.metadata.writable = true
   cfs.partitions.home.metadata.readable = true
 

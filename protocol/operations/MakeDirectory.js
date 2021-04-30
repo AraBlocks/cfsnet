@@ -1,8 +1,8 @@
 const { dirname } = require('path')
-const messages = require('../messages')
 const debug = require('debug')('cfsnet:protocol:operations:MakeDirectory')
 
 const { BadRequestError } = require('../error')
+const messages = require('../messages')
 
 /**
  * `MakeDirectory(string path) -> string`

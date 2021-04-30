@@ -12,13 +12,10 @@ test.afterEach.cb((t) => {
 const sandbox = sinon.createSandbox()
 
 let cfs
-test.before(async () => {
+test.beforeEach(async () => {
   cfs = await createCFS({
     path: './.cfses'
   })
-})
-
-test.beforeEach(() => {
   sandbox.restore()
 })
 

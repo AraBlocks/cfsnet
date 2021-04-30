@@ -1,5 +1,4 @@
 /* eslint-disable global-require */
-const { normalizeCFSKey } = require('./key')
 const { resolve } = require('path')
 const hyperdrive = require('hyperdrive')
 const mkdirp = require('mkdirp')
@@ -7,6 +6,8 @@ const rimraf = require('rimraf')
 const debug = require('debug')('cfsnet:create:drive')
 const raf = require('random-access-file')
 const ram = require('random-access-memory')
+
+const { normalizeCFSKey } = require('./key')
 
 async function createCFSDrive(opts) {
   let drive = null
@@ -51,9 +52,9 @@ async function createCFSDrive(opts) {
   function createStorage() {
     return (filename) => {
       if (
-        false === storeSecretKey &&
-        filename.includes('secret') &&
-        filename.includes('key')
+        false === storeSecretKey
+        && filename.includes('secret')
+        && filename.includes('key')
       ) {
         return ram()
       }
@@ -152,7 +153,10 @@ function wrap(drive) {
           mode: opts
         }
       }
-      return mkdirp(dir, opts, cb)
+
+      mkdirp(dir, opts)
+        .then(() => 'function' === typeof cb && cb(null), cb)
+        .catch(cb)
     },
 
     // rm -rf

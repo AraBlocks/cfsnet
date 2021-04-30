@@ -25,7 +25,8 @@ test.beforeEach(() => {
 test.serial('open is called without errors', async (t) => {
   t.plan(2)
 
-  sandbox.stub(cfs.partitions.home, 'open').callsFake((path, err, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'open').callsFake((path, err, cb) => {
+    stub.restore()
     t.is('/test', path)
     t.is(err, null)
     cb(null, 20)
@@ -41,7 +42,8 @@ test.serial('open is called without errors', async (t) => {
 test.serial('open is called without errors - flags', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'open').callsFake((path, err, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'open').callsFake((path, err, cb) => {
+    stub.restore()
     t.pass()
     cb(null, 20)
   })
@@ -56,7 +58,8 @@ test.serial('open is called without errors - flags', async (t) => {
 test.serial('open is called without errors - mode', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'open').callsFake((path, err, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'open').callsFake((path, err, cb) => {
+    stub.restore()
     t.pass()
     cb(null, 20)
   })
@@ -71,7 +74,8 @@ test.serial('open is called without errors - mode', async (t) => {
 test.serial('open is called with cb', async (t) => {
   t.plan(1)
 
-  sandbox.stub(cfs.partitions.home, 'open').callsFake((path, err, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'open').callsFake((path, err, cb) => {
+    stub.restore()
     cb(null, 20)
   })
 

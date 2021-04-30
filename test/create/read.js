@@ -28,7 +28,8 @@ test.serial('read is called without errors', async (t) => {
 
   cfs.fileDescriptors[20] = cfs.partitions.home
 
-  sandbox.stub(cfs.partitions.home, 'read').callsFake((_, cb) => {
+  const stub = sandbox.stub(cfs.partitions.home, 'read').callsFake((_, cb) => {
+    stub.restore()
     cb()
   })
 

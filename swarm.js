@@ -20,7 +20,7 @@ const {
 
 const kCFSDiscoverySwarmWebSocketPort = 6888
 const kCFSDiscoverySwarmPort = 6889
-const kLucasRetries = [ ...lucas(0, 4) ].map(i => i * 1000)
+const kLucasRetries = [ ...lucas(0, 4) ].map((i) => i * 1000)
 
 function noop() {}
 function toHex(v) {
@@ -247,7 +247,7 @@ async function createCFSDiscoverySwarm({
             'x-peer-id': toHex(id),
           }
         })
-        socket.once('error', err => cb(err))
+        socket.once('error', (err) => cb(err))
         socket.once('close', () => forget(signal))
         socket.once('connect', () => {
           if (host in signals) { socket.close() }
